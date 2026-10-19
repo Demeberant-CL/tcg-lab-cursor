@@ -33,6 +33,8 @@
 - Un mazo válido de 20 cartas, con límites de copias y energías válidas, se guarda sin alterar su contenido.
 - Ejecutar `gradlew.bat test` y `gradlew.bat assembleDebug` con JDK 17.
 
-## Nota
+## Estado de la rama
 
-Este documento registra el trabajo pendiente; no afirma que las correcciones estén implementadas. La conexión actual de GitHub permite reemplazar archivos completos, pero no entrega una copia de trabajo del repositorio; por eso no se sustituyó un archivo Kotlin extenso con contenido parcial ni se abrió un cambio incompleto en la aplicación.
+Las correcciones anteriores y los hallazgos de la revisión estática se aplicaron en `fix/security-and-deck-validation`. Incluyen exclusión de preferencias cifradas del backup y transferencia del dispositivo, carga del catálogo antes de derivar pantallas, validación de mazos en todas las pantallas, límites por copias disponibles, borrado de mazos por ID, validación de referencias de colección y transacción para importación de reemplazo.
+
+La comprobación final fue estática mediante los archivos de la rama. Aún falta ejecutar `gradlew.bat test` y `gradlew.bat assembleDebug`; el entorno no pudo clonar el repositorio privado con Git.
