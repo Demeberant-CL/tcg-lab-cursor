@@ -400,7 +400,7 @@ class GrokClient(
         return changes to JSONObject().put("ok", true).put("updated", changes.size).toString()
     }
 
-    private fun saveDeck(args: JSONObject): Deck {
+    private fun saveDeck(args: JSONObject, holdings: List<Holding>): Deck {
         val name = args.getString("name").trim()
         require(name.isNotBlank()) { "El mazo debe tener un nombre." }
 
@@ -427,6 +427,14 @@ class GrokClient(
             }
         }
         require(cards.isNotEmpty()) { "El mazo no tiene cartas." }
+        for ((key, entries) in cards.groupBy { it.set to it.number }) {
+            val required = entries.sumOf { it.count }
+            val owned = holdings.find { it.set == key.first && it.number == key.second }?.qty ?: 0
+            val cardName = Catalog.findCard(key.first, key.second)?.name ?: "${key.first} ${key.second}"
+            require(required <= owned) {
+                "Tienes $owned copias de $cardName y el mazo requiere $required."
+            }
+        }
         val problems = deckProblems(resolveDeck(cards), energies)
         require(problems.isEmpty()) { problems.joinToString(" ") }
 
