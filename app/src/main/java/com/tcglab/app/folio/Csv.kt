@@ -36,6 +36,7 @@ private fun parseTable(text: String): List<List<String>> {
         }
         i += 1
     }
+    require(!quoted) { "CSV inválido: hay una comilla sin cerrar." }
     if (current.isNotEmpty() || row.isNotEmpty()) {
         row += current.toString()
         rows += row
