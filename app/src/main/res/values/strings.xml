@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TCG LAB</string>
+    <string name="brand">TCG LAB</string>
+
+    <string name="tab_collection">Colección</string>
+    <string name="tab_decks">Mazos</string>
+    <string name="tab_grok">Grok</string>
+
+    <string name="collection_title">Colección</string>
+    <string name="stat_cards">Cartas</string>
+    <string name="stat_copies">Copias</string>
+    <string name="stat_ex">ex</string>
+    <string name="menu">Menú</string>
+    <string name="import_csv">Importar CSV</string>
+    <string name="export_csv">Exportar CSV</string>
+    <string name="reset_seed">Volver al archivo original</string>
+    <string name="import_csv_title">Importar CSV</string>
+    <string name="import_csv_body">¿Combinar con la colección actual o reemplazarla?</string>
+    <string name="combine">Combinar</string>
+    <string name="replace">Reemplazar</string>
+
+    <string name="back">Volver</string>
+    <string name="search_hint">Nombre o A1 36</string>
+    <string name="filter_all">Todas</string>
+    <string name="filter_owned">Tengo</string>
+    <string name="filter_missing">Me faltan</string>
+    <string name="filter_tracked">Rastreadas</string>
+    <string name="close">Cerrar</string>
+    <string name="add">+</string>
+    <string name="subtract">−</string>
+
+    <string name="decks_title">Mazos</string>
+    <string name="new_deck">Nuevo</string>
+    <string name="deck_editor_title">Editar mazo</string>
+    <string name="save">Guardar</string>
+    <string name="deck_name">Nombre</string>
+    <string name="deck_default_name">Mazo</string>
+    <string name="energies">Energías</string>
+    <string name="deck_cards">Cartas del mazo</string>
+    <string name="qr_code">Código QR</string>
+    <string name="add_from_collection">Sumar desde la colección</string>
+    <string name="search">Buscar</string>
+    <string name="filter_trainer">Entrenador</string>
+    <string name="qr_help">En el juego: Mazos, Crear, Escanear código. Si el código está en el mismo teléfono, ábrelo en otra pantalla.</string>
+    <string name="download">Descargar</string>
+
+    <string name="energy_grass">Planta</string>
+    <string name="energy_fire">Fuego</string>
+    <string name="energy_water">Agua</string>
+    <string name="energy_lightning">Rayo</string>
+    <string name="energy_psychic">Psíquica</string>
+    <string name="energy_fighting">Lucha</string>
+    <string name="energy_darkness">Oscura</string>
+    <string name="energy_metal">Metálica</string>
+
+    <string name="grok_title">Grok</string>
+    <string name="grok_summary_note">Cada mensaje manda un resumen, no toda la colección.</string>
+    <string name="grok_missing_key">Falta la clave de la API. Añade XAI_API_KEY en local.properties. El resto de la app sigue disponible sin conexión.</string>
+    <string name="grok_you">Tú</string>
+    <string name="grok_assistant">Grok</string>
+    <string name="grok_open_deck">Abrir %1$s</string>
+    <string name="grok_deck_fallback">mazo</string>
+    <string name="grok_message_hint">Escribe un mensaje</string>
+    <string name="grok_send">Enviar</string>
+    <string name="grok_busy">…</string>
+    <string name="grok_error_generic">No se pudo completar la solicitud.</string>
+    <string name="grok_suggestion_fire">Arma un mazo de fuego con las cartas que tengo y déjalo listo para el código QR</string>
+    <string name="grok_suggestion_water">Arma un mazo de agua de 20 cartas, solo con lo que tengo</string>
+    <string name="grok_suggestion_ex">¿Qué ex de rayo tengo?</string>
+
+    <string name="home_subtitle">Tu álbum y mazos de Pocket</string>
+    <string name="home_progress">Progreso de la colección</string>
+    <string name="action_collection">Ver colección</string>
+    <string name="action_deck">Construir un mazo</string>
+    <string name="action_strategy">Pedir una estrategia</string>
+    <string name="settings">Ajustes</string>
+    <string name="theme">Tema</string>
+    <string name="theme_system">Sistema</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Oscuro</string>
+</resources>
+

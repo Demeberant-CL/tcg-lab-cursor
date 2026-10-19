@@ -1,0 +1,215 @@
+package com.tcglab.app.data
+
+import android.content.Context
+import com.tcglab.app.data.db.AppDatabase
+import com.tcglab.app.data.db.ChatMessageEntity
+import com.tcglab.app.data.db.DeckEntity
+import com.tcglab.app.data.db.HoldingEntity
+import com.tcglab.app.data.db.MetaEntity
+import com.tcglab.app.folio.Catalog
+import com.tcglab.app.folio.CollectionChange
+import com.tcglab.app.folio.Deck
+import com.tcglab.app.folio.DeckCard
+import com.tcglab.app.folio.Holding
+import com.tcglab.app.folio.CsvRow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.UUID
+
+class LabRepository(context: Context) {
+    private val appContext = context.applicationContext
+    private val db = AppDatabase.get(appContext)
+
+    val holdings: Flow<List<Holding>> = db.holdings().observeAll().map { list ->
+        list.map { Holding(it.setCode, it.number, it.qty) }
+    }
+
+    val decks: Flow<List<Deck>> = db.decks().observeAll().map { list ->
+        list.map { it.toDeck() }
+    }
+
+    val chatMessages: Flow<List<ChatUiMessage>> = db.chat().observeAll().map { list ->
+        list.map {
+            ChatUiMessage(
+                id = it.id,
+                role = it.role,
+                content = it.content,
+                changes = it.changesJson?.let(::parseChanges).orEmpty(),
+                deckName = it.deckName,
+                deckId = it.deckEvent?.substringAfter("id:", missingDelimiterValue = "")
+                    ?.takeIf { value -> value.isNotBlank() && it.deckEvent.startsWith("id:") },
+                deckEvent = when {
+                    it.deckEvent == null -> null
+                    it.deckEvent.startsWith("id:") -> "saved"
+                    else -> it.deckEvent
+                },
+            )
+        }
+    }
+
+    suspend fun bootstrap() {
+        CatalogLoader.ensureLoaded(appContext)
+        val seeded = db.meta().get("seeded")
+        if (seeded == null) {
+            val seed = CatalogLoader.loadSeed(appContext)
+            db.holdings().upsertAll(seed.map { it.toEntity() })
+            db.meta().put(MetaEntity("seeded", "1"))
+        }
+    }
+
+    suspend fun setQty(set: String, number: Int, qty: Int) {
+        val clamped = qty.coerceIn(0, 99)
+        db.holdings().upsertAll(
+            listOf(HoldingEntity(Catalog.cardKey(set, number), set, number, clamped)),
+        )
+    }
+
+    suspend fun importCsv(rows: List<CsvRow>, replace: Boolean) {
+        if (replace) {
+            db.holdings().clear()
+            db.holdings().upsertAll(rows.map { HoldingEntity(Catalog.cardKey(it.set, it.number), it.set, it.number, it.qty) })
+            return
+        }
+        val current = db.holdings().getAll().associateBy { it.key }.toMutableMap()
+        for (row in rows) {
+            val key = Catalog.cardKey(row.set, row.number)
+            val existing = current[key]
+            val mergedQty = if (existing == null) row.qty else maxOf(existing.qty, row.qty)
+            current[key] = HoldingEntity(key, row.set, row.number, mergedQty)
+        }
+        db.holdings().upsertAll(current.values.toList())
+    }
+
+    suspend fun resetToSeed() {
+        db.holdings().clear()
+        val seed = CatalogLoader.loadSeed(appContext)
+        db.holdings().upsertAll(seed.map { it.toEntity() })
+    }
+
+    suspend fun saveDeck(deck: Deck) {
+        db.decks().upsert(deck.toEntity())
+    }
+
+    suspend fun deleteDeck(id: String) {
+        db.decks().delete(id)
+    }
+
+    suspend fun deleteDeckByName(name: String) {
+        db.decks().deleteByName(name)
+    }
+
+    suspend fun getDeck(id: String): Deck? = db.decks().getById(id)?.toDeck()
+
+    suspend fun applyCollectionChanges(changes: List<CollectionChange>) {
+        if (changes.isEmpty()) return
+        db.holdings().upsertAll(
+            changes.map {
+                HoldingEntity(Catalog.cardKey(it.set, it.number), it.set, it.number, it.to.coerceIn(0, 99))
+            },
+        )
+    }
+
+    suspend fun appendChat(message: ChatUiMessage) {
+        db.chat().insert(
+            ChatMessageEntity(
+                id = message.id,
+                role = message.role,
+                content = message.content,
+                changesJson = if (message.changes.isEmpty()) null else encodeChanges(message.changes),
+                deckName = message.deckName,
+                deckEvent = when {
+                    message.deckId != null -> "id:${message.deckId}"
+                    else -> message.deckEvent
+                },
+                createdAt = System.currentTimeMillis(),
+            ),
+        )
+    }
+
+    suspend fun clearChat() = db.chat().clear()
+
+    suspend fun snapshotHoldings(): List<Holding> =
+        db.holdings().getAll().map { Holding(it.setCode, it.number, it.qty) }
+
+    suspend fun snapshotDecks(): List<Deck> =
+        db.decks().getAll().map { it.toDeck() }
+}
+
+data class ChatUiMessage(
+    val id: String = UUID.randomUUID().toString(),
+    val role: String,
+    val content: String,
+    val changes: List<CollectionChange> = emptyList(),
+    val deckName: String? = null,
+    val deckId: String? = null,
+    val deckEvent: String? = null,
+)
+
+private fun Holding.toEntity() =
+    HoldingEntity(Catalog.cardKey(set, number), set, number, qty)
+
+private fun Deck.toEntity() = DeckEntity(
+    id = id,
+    name = name,
+    energiesJson = JSONArray(energies).toString(),
+    cardsJson = JSONArray().apply {
+        cards.forEach { card ->
+            put(
+                JSONObject()
+                    .put("set", card.set)
+                    .put("number", card.number)
+                    .put("count", card.count),
+            )
+        }
+    }.toString(),
+    updatedAt = updatedAt,
+)
+
+private fun DeckEntity.toDeck(): Deck {
+    val energiesArray = JSONArray(energiesJson)
+    val energies = buildList {
+        for (i in 0 until energiesArray.length()) add(energiesArray.getInt(i))
+    }
+    val cardsArray = JSONArray(cardsJson)
+    val cards = buildList {
+        for (i in 0 until cardsArray.length()) {
+            val obj = cardsArray.getJSONObject(i)
+            add(DeckCard(obj.getString("set"), obj.getInt("number"), obj.getInt("count")))
+        }
+    }
+    return Deck(id, name, energies, cards, updatedAt)
+}
+
+private fun encodeChanges(changes: List<CollectionChange>): String =
+    JSONArray().apply {
+        changes.forEach {
+            put(
+                JSONObject()
+                    .put("set", it.set)
+                    .put("number", it.number)
+                    .put("name", it.name)
+                    .put("from", it.from)
+                    .put("to", it.to),
+            )
+        }
+    }.toString()
+
+private fun parseChanges(json: String): List<CollectionChange> {
+    val array = JSONArray(json)
+    return buildList {
+        for (i in 0 until array.length()) {
+            val obj = array.getJSONObject(i)
+            add(
+                CollectionChange(
+                    set = obj.getString("set"),
+                    number = obj.getInt("number"),
+                    name = obj.getString("name"),
+                    from = obj.getInt("from"),
+                    to = obj.getInt("to"),
+                ),
+            )
+        }
+    }
+}

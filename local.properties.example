@@ -1,0 +1,5 @@
+## Ruta del SDK de Android
+sdk.dir=C\:\\Users\\TU_USUARIO\\AppData\\Local\\Android\\Sdk
+
+## Clave opcional para el chat de Grok (no la subas al repositorio)
+XAI_API_KEY=
