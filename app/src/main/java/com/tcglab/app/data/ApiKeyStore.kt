@@ -8,7 +8,7 @@ class ApiKeyStore(context: Context) {
     private val appContext = context.applicationContext
     private val prefs = EncryptedSharedPreferences.create(
         appContext,
-        "tcg_lab_secure",
+        ENCRYPTED_PREFS,
         MasterKey.Builder(appContext)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build(),
@@ -49,5 +49,6 @@ class ApiKeyStore(context: Context) {
     companion object {
         private const val KEY = "xai_api_key"
         private const val LEGACY_PREFS = "tcg_lab_secure"
+        private const val ENCRYPTED_PREFS = "tcg_lab_encrypted"
     }
 }
