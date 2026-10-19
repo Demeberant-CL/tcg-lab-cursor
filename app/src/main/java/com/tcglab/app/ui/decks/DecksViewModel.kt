@@ -58,7 +58,7 @@ class DecksViewModel(private val repository: LabRepository) : ViewModel() {
     }
 
     private fun isValid(name: String, energies: List<Int>, cards: List<DeckCard>): Boolean =
-        name.isNotBlank() && problems(cards, energies).isEmpty()
+        problems(cards, energies).isEmpty()
 
     fun deleteDeck(id: String) {
         viewModelScope.launch { repository.deleteDeck(id) }
