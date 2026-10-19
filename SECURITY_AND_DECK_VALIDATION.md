@@ -1,0 +1,38 @@
+# Optimización propuesta: seguridad de la clave y validación de mazos
+
+## Hallazgos
+
+1. `app/build.gradle.kts` incorpora `XAI_API_KEY` en `BuildConfig`. Toda clave presente al compilar queda dentro del APK y puede extraerse. Las claves de usuario no deben incluirse en artefactos distribuibles.
+2. `ApiKeyStore` guarda la clave en `SharedPreferences` sin cifrado.
+3. La herramienta `save_deck` en `GrokClient` clampa cantidades individuales, pero guarda sin verificar el total de 20 cartas, los límites por nombre/entityId, la existencia de cartas ni las energías.
+
+## Cambios requeridos
+
+### Clave API
+
+- Quitar la lectura de `XAI_API_KEY` y el `buildConfigField` del módulo Android; eliminar también el campo de `BuildConfig` en `ApiKeyStore`.
+- Conservar el ingreso manual en Ajustes.
+- Cifrar el valor guardado con Android Keystore (por ejemplo, `EncryptedSharedPreferences` y `MasterKey`, añadiendo la dependencia AndroidX Security Crypto compatible con el proyecto).
+- Hacer que `clear()` borre el valor cifrado y que el estado de Ajustes refleje la presencia de la clave.
+- Actualizar `README.md` y `local.properties.example` para dejar claro que una clave de compilación no se admite ni se distribuye.
+
+### Guardado de mazo
+
+- Parsear los argumentos estrictamente: no truncar energías con `take(3)` ni cambiar silenciosamente cantidades inválidas con `coerceIn`.
+- Resolver cada referencia con `Catalog.findCard`; rechazar cartas ausentes o sin `entityId` válido para QR.
+- Rechazar cantidades fuera de 1..2, nombres vacíos, cartas duplicadas conflictivas y totales distintos de 20.
+- Rechazar energías vacías, más de tres, IDs fuera de 1..8 y duplicados.
+- Validar con `deckProblems(resolveDeck(cards), energies)` y guardar solo cuando no existan problemas.
+- Devolver las razones de rechazo como resultado de la herramienta para que Grok pueda corregir el mazo. No persistir ni anunciar un guardado fallido.
+
+## Criterios de aceptación
+
+- El APK de release no contiene valor ni campo de clave API compilado.
+- La clave introducida por el usuario se conserva cifrada y se puede borrar desde Ajustes.
+- `save_deck` no persiste mazos inválidos y el resultado de herramienta enumera los motivos.
+- Un mazo válido de 20 cartas, con límites de copias y energías válidas, se guarda sin alterar su contenido.
+- Ejecutar `gradlew.bat test` y `gradlew.bat assembleDebug` con JDK 17.
+
+## Nota
+
+Este documento registra el trabajo pendiente; no afirma que las correcciones estén implementadas. La conexión actual de GitHub permite reemplazar archivos completos, pero no entrega una copia de trabajo del repositorio; por eso no se sustituyó un archivo Kotlin extenso con contenido parcial ni se abrió un cambio incompleto en la aplicación.
