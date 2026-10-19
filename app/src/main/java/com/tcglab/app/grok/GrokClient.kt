@@ -9,6 +9,8 @@ import com.tcglab.app.folio.DeckCard
 import com.tcglab.app.folio.Holding
 import com.tcglab.app.folio.fold
 import com.tcglab.app.folio.isExCard
+import com.tcglab.app.folio.resolveDeck
+import com.tcglab.app.folio.deckProblems
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -145,10 +147,15 @@ class GrokClient(
                             result.second
                         }
                         "save_deck" -> {
-                            val deck = saveDeck(args)
-                            savedDeck = deck
-                            repository.saveDeck(deck)
-                            JSONObject().put("ok", true).put("id", deck.id).put("name", deck.name).toString()
+                            val result = runCatching { saveDeck(args) }
+                            if (result.isSuccess) {
+                                val deck = result.getOrThrow()
+                                savedDeck = deck
+                                repository.saveDeck(deck)
+                                JSONObject().put("ok", true).put("id", deck.id).put("name", deck.name).toString()
+                            } else {
+                                JSONObject().put("ok", false).put("error", result.exceptionOrNull()?.message ?: "Mazo inválido").toString()
+                            }
                         }
                         "delete_deck" -> {
                             val deckName = args.getString("name")
@@ -387,24 +394,35 @@ class GrokClient(
     }
 
     private fun saveDeck(args: JSONObject): Deck {
-        val name = args.getString("name")
+        val name = args.getString("name").trim()
+        require(name.isNotBlank()) { "El mazo debe tener un nombre." }
+
         val energiesArray = args.getJSONArray("energies")
         val energies = buildList {
             for (i in 0 until energiesArray.length()) add(energiesArray.getInt(i))
-        }.take(3)
+        }
+        require(energies.size in 1..3) { "Elige entre 1 y 3 energías." }
+        require(energies.all { it in 1..8 }) { "Hay una energía inválida." }
+        require(energies.distinct().size == energies.size) { "No repitas energías." }
+
         val cardsArray = args.getJSONArray("cards")
         val cards = buildList {
             for (i in 0 until cardsArray.length()) {
                 val obj = cardsArray.getJSONObject(i)
-                add(
-                    DeckCard(
-                        set = Catalog.canonSet(obj.getString("set")),
-                        number = obj.getInt("number"),
-                        count = obj.getInt("count").coerceIn(1, 2),
-                    ),
-                )
+                val set = Catalog.canonSet(obj.getString("set"))
+                val number = obj.getInt("number")
+                val count = obj.getInt("count")
+                require(count in 1..2) { "Cada carta debe tener entre 1 y 2 copias." }
+                val known = Catalog.findCard(set, number)
+                    ?: throw IllegalArgumentException("No existe la carta $set $number.")
+                require(known.entityId > 0) { "${known.name} no tiene código para el QR." }
+                add(DeckCard(set = known.set, number = number, count = count))
             }
         }
+        require(cards.isNotEmpty()) { "El mazo no tiene cartas." }
+        val problems = deckProblems(resolveDeck(cards), energies)
+        require(problems.isEmpty()) { problems.joinToString(" ") }
+
         return Deck(
             id = UUID.randomUUID().toString(),
             name = name,
