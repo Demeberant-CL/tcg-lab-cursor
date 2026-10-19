@@ -41,8 +41,9 @@ class CollectionViewModel(private val repository: LabRepository) : ViewModel() {
         repository.holdings,
         query,
         filter,
-    ) { holdings, _, _ ->
-        if (!Catalog.isLoaded()) return@combine CollectionUiState()
+        repository.catalogReady,
+    ) { holdings, _, _, catalogReady ->
+        if (!catalogReady || !Catalog.isLoaded()) return@combine CollectionUiState()
         val map = holdings.associate { Catalog.cardKey(it.set, it.number) to it.qty }
         val sets = Catalog.sets.map { set ->
             val owned = Catalog.cards.count { card ->
