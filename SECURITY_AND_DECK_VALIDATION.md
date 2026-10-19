@@ -34,7 +34,7 @@
 - Un archivo sin filas de cartas devuelve un mensaje visible y no modifica la colección.
 - El repositorio también ignora listas vacías como defensa adicional.
 - El reemplazo y la combinación se aplican en una transacción.
-- Se añadieron pruebas unitarias para CSV vacío, encabezado sin datos, filas inválidas y una fila válida.
+- Se añadieron pruebas unitarias para CSV vacío, encabezado sin datos, filas inválidas, comillas sin cerrar y una fila válida.
 
 ## Criterios de aceptación
 
