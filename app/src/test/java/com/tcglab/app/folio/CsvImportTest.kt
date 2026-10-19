@@ -17,6 +17,11 @@ class CsvImportTest {
     }
 
     @Test(expected = IllegalArgumentException::class)
+    fun unmatchedQuoteRejectsWholeImport() {
+        parseCollectionCsv("\"Seccion,Set,ID,Nombre,Rareza,Cantidad,Registrada")
+    }
+
+    @Test(expected = IllegalArgumentException::class)
     fun invalidCardNumberRejectsWholeImport() {
         val csv = "Seccion,Set,ID,Nombre,Rareza,Cantidad,Registrada\nCards,A1,xyz,Pikachu,rarity-1,1,sí"
         parseCollectionCsv(csv)
