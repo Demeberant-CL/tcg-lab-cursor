@@ -1,21 +1,27 @@
 package com.tcglab.app.data
 
 import android.content.Context
-import com.tcglab.app.BuildConfig
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 
 class ApiKeyStore(context: Context) {
-    private val prefs = context.applicationContext.getSharedPreferences("tcg_lab_secure", Context.MODE_PRIVATE)
+    private val prefs = EncryptedSharedPreferences.create(
+        context.applicationContext,
+        "tcg_lab_secure",
+        MasterKey.Builder(context.applicationContext)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build(),
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+    )
 
-    fun getKey(): String {
-        val saved = prefs.getString(KEY, "").orEmpty().trim()
-        if (saved.isNotBlank()) return saved
-        return BuildConfig.XAI_API_KEY.trim()
-    }
+    fun getKey(): String = prefs.getString(KEY, "").orEmpty().trim()
 
     fun hasKey(): Boolean = getKey().isNotBlank()
 
     fun saveKey(value: String) {
-        prefs.edit().putString(KEY, value.trim()).apply()
+        val normalized = value.trim()
+        if (normalized.isBlank()) clear() else prefs.edit().putString(KEY, normalized).apply()
     }
 
     fun clear() {
