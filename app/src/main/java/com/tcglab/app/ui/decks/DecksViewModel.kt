@@ -65,6 +65,7 @@ class DecksViewModel(private val repository: LabRepository) : ViewModel() {
     }
 
     fun problems(cards: List<DeckCard>, energies: List<Int>): List<String> {
+        if (!state.value.catalogReady) return listOf("Cargando el catálogo…")
         val result = deckProblems(resolveDeck(cards), energies).toMutableList()
         for ((key, entries) in cards.groupBy { it.set to it.number }) {
             val required = entries.sumOf { it.count }
