@@ -14,7 +14,7 @@ Toda la interfaz está en español neutro (sin voseo).
 
 1. Abre esta carpeta en Android Studio.
 2. Si hace falta, copia `local.properties.example` a `local.properties` y ajusta `sdk.dir`.
-3. Opcional: añade `XAI_API_KEY=...` en `local.properties`, o pega la clave dentro de la app (sección Mazo y asistente).
+3. Pega la clave de Grok dentro de la app (sección Ajustes). Se guarda cifrada en el teléfono; no configures claves API en la compilación.
 4. Sincroniza Gradle y ejecuta el módulo `app`.
 
 Imágenes de cartas: CDN de Limitless (`limitlesstcg.../pocket/...`), con respaldos automáticos.
