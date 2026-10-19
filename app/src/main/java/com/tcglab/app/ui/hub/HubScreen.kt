@@ -84,6 +84,7 @@ fun HubScreen(
     rootModifier: Modifier = Modifier,
 ) {
     val collection by collectionVm.state.collectAsState()
+    val importError by collectionVm.importError.collectAsState()
     val decksState by decksVm.state.collectAsState()
     val grokMessages by grokVm.messages.collectAsState()
     val grokUi by grokVm.ui.collectAsState()
@@ -345,7 +346,7 @@ fun HubScreen(
             Text(text = problems.first(), color = LabInkMuted)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            LabPrimaryButton(text = "Guardar mazo") {
+            LabPrimaryButton(text = "Guardar mazo", enabled = ready) {
                 decksVm.saveDeck(deckId, deckName, energies, cards)
             }
             LabPrimaryButton(
@@ -398,10 +399,10 @@ fun HubScreen(
         }
         CardGrid(
             cards = owned.map { card ->
-                Triple(card, 0, decksVm.canAdd(cards, card.set, card.number))
+                Triple(card, 0, decksVm.canAdd(cards, decksState.holdings, card.set, card.number))
             },
             onClick = { card ->
-                if (!decksVm.canAdd(cards, card.set, card.number)) return@CardGrid
+                if (!decksVm.canAdd(cards, decksState.holdings, card.set, card.number)) return@CardGrid
                 val existing = cards.find { it.set == card.set && it.number == card.number }
                 cards = if (existing == null) {
                     cards + DeckCard(card.set, card.number, 1)
@@ -586,6 +587,17 @@ fun HubScreen(
                 Spacer(Modifier.height(20.dp))
             }
         }
+    }
+
+    if (importError != null) {
+        AlertDialog(
+            onDismissRequest = collectionVm::dismissImportError,
+            title = { Text("No se pudo importar") },
+            text = { Text(importError.orEmpty()) },
+            confirmButton = {
+                LabTextButton(text = "Aceptar", onClick = collectionVm::dismissImportError)
+            },
+        )
     }
 
     if (importAsk && pendingCsv != null) {

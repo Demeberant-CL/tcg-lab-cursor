@@ -216,7 +216,7 @@ fun DeckBuilderScreen(
             Text(problems.first(), color = colors.inkMuted)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            LabPrimaryButton("Guardar") {
+            LabPrimaryButton("Guardar", enabled = ready) {
                 decksVm.saveDeck(deckId, deckName, energies, cards)
             }
             LabPrimaryButton(
@@ -276,7 +276,7 @@ fun DeckBuilderScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 row.forEach { card ->
-                    val enabled = decksVm.canAdd(cards, card.set, card.number)
+                    val enabled = decksVm.canAdd(cards, state.holdings, card.set, card.number)
                     LabSurfaceCard(
                         modifier = Modifier.weight(1f),
                         onClick = {

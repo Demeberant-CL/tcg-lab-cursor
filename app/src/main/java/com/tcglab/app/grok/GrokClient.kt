@@ -9,6 +9,8 @@ import com.tcglab.app.folio.DeckCard
 import com.tcglab.app.folio.Holding
 import com.tcglab.app.folio.fold
 import com.tcglab.app.folio.isExCard
+import com.tcglab.app.folio.resolveDeck
+import com.tcglab.app.folio.deckProblems
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -145,16 +147,26 @@ class GrokClient(
                             result.second
                         }
                         "save_deck" -> {
-                            val deck = saveDeck(args)
-                            savedDeck = deck
-                            repository.saveDeck(deck)
-                            JSONObject().put("ok", true).put("id", deck.id).put("name", deck.name).toString()
+                            val result = runCatching { saveDeck(args, holdings) }
+                            if (result.isSuccess) {
+                                val deck = result.getOrThrow()
+                                savedDeck = deck
+                                repository.saveDeck(deck)
+                                JSONObject().put("ok", true).put("id", deck.id).put("name", deck.name).toString()
+                            } else {
+                                JSONObject().put("ok", false).put("error", result.exceptionOrNull()?.message ?: "Mazo inválido").toString()
+                            }
                         }
                         "delete_deck" -> {
-                            val deckName = args.getString("name")
-                            repository.deleteDeckByName(deckName)
-                            deleted = deckName
-                            JSONObject().put("ok", true).put("deleted", deckName).toString()
+                            val deckId = args.getString("id")
+                            val deck = decks.find { it.id == deckId }
+                            if (deck == null) {
+                                JSONObject().put("ok", false).put("error", "No existe ese mazo.").toString()
+                            } else {
+                                repository.deleteDeck(deckId)
+                                deleted = deck.name
+                                JSONObject().put("ok", true).put("deleted", deck.name).toString()
+                            }
                         }
                         else -> JSONObject().put("error", "Herramienta desconocida").toString()
                     }
@@ -183,7 +195,7 @@ class GrokClient(
             val key = if (card.trainer) "trainer" else card.element.ifBlank { "other" }
             byType[key] = (byType[key] ?: 0) + 1
         }
-        val deckLines = decks.joinToString("; ") { "${it.name} (${it.cards.sumOf { c -> c.count }}/20)" }
+        val deckLines = decks.joinToString("; ") { "${it.name} [id=${it.id}] (${it.cards.sumOf { c -> c.count }}/20)" }
         return buildString {
             append("cartas distintas=${owned.size}, copias=$copies. ")
             append("por set=${bySet.entries.joinToString { "${it.key}:${it.value}" }}. ")
@@ -291,11 +303,11 @@ class GrokClient(
             .put(
                 tool(
                     "delete_deck",
-                    "Borra un mazo por nombre",
+                    "Borra un mazo por id. Usa el id que aparece en el resumen de mazos.",
                     JSONObject()
                         .put("type", "object")
-                        .put("properties", JSONObject().put("name", stringType))
-                        .put("required", JSONArray().put("name")),
+                        .put("properties", JSONObject().put("id", stringType))
+                        .put("required", JSONArray().put("id")),
                 ),
             )
     }
@@ -372,9 +384,11 @@ class GrokClient(
             val obj = updates.getJSONObject(i)
             val set = Catalog.canonSet(obj.getString("set"))
             val number = obj.getInt("number")
-            val qty = obj.getInt("qty").coerceIn(0, 99)
+            val qty = obj.getInt("qty")
+            require(qty in 0..99) { "La cantidad debe estar entre 0 y 99." }
             val card = Catalog.findCard(set, number)
-            val from = holdings.find { it.set == set && it.number == number }?.qty ?: 0
+                ?: throw IllegalArgumentException("No existe la carta $set $number.")
+            val from = holdings.find { it.set == card.set && it.number == number }?.qty ?: 0
             changes += CollectionChange(
                 set = set,
                 number = number,
@@ -386,25 +400,44 @@ class GrokClient(
         return changes to JSONObject().put("ok", true).put("updated", changes.size).toString()
     }
 
-    private fun saveDeck(args: JSONObject): Deck {
-        val name = args.getString("name")
+    private fun saveDeck(args: JSONObject, holdings: List<Holding>): Deck {
+        val name = args.getString("name").trim()
+        require(name.isNotBlank()) { "El mazo debe tener un nombre." }
+
         val energiesArray = args.getJSONArray("energies")
         val energies = buildList {
             for (i in 0 until energiesArray.length()) add(energiesArray.getInt(i))
-        }.take(3)
+        }
+        require(energies.size in 1..3) { "Elige entre 1 y 3 energías." }
+        require(energies.all { it in 1..8 }) { "Hay una energía inválida." }
+        require(energies.distinct().size == energies.size) { "No repitas energías." }
+
         val cardsArray = args.getJSONArray("cards")
         val cards = buildList {
             for (i in 0 until cardsArray.length()) {
                 val obj = cardsArray.getJSONObject(i)
-                add(
-                    DeckCard(
-                        set = Catalog.canonSet(obj.getString("set")),
-                        number = obj.getInt("number"),
-                        count = obj.getInt("count").coerceIn(1, 2),
-                    ),
-                )
+                val set = Catalog.canonSet(obj.getString("set"))
+                val number = obj.getInt("number")
+                val count = obj.getInt("count")
+                require(count in 1..2) { "Cada carta debe tener entre 1 y 2 copias." }
+                val known = Catalog.findCard(set, number)
+                    ?: throw IllegalArgumentException("No existe la carta $set $number.")
+                require(known.entityId > 0) { "${known.name} no tiene código para el QR." }
+                add(DeckCard(set = known.set, number = number, count = count))
             }
         }
+        require(cards.isNotEmpty()) { "El mazo no tiene cartas." }
+        for ((key, entries) in cards.groupBy { it.set to it.number }) {
+            val required = entries.sumOf { it.count }
+            val owned = holdings.find { it.set == key.first && it.number == key.second }?.qty ?: 0
+            val cardName = Catalog.findCard(key.first, key.second)?.name ?: "${key.first} ${key.second}"
+            require(required <= owned) {
+                "Tienes $owned copias de $cardName y el mazo requiere $required."
+            }
+        }
+        val problems = deckProblems(resolveDeck(cards), energies)
+        require(problems.isEmpty()) { problems.joinToString(" ") }
+
         return Deck(
             id = UUID.randomUUID().toString(),
             name = name,

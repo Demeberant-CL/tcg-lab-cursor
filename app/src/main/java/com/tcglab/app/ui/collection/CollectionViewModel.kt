@@ -11,12 +11,15 @@ import com.tcglab.app.folio.SetInfo
 import com.tcglab.app.folio.fold
 import com.tcglab.app.folio.isExCard
 import com.tcglab.app.folio.parseCollectionCsv
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class OwnFilter { All, Owned, Missing, Tracked }
 
@@ -36,13 +39,16 @@ class CollectionViewModel(private val repository: LabRepository) : ViewModel() {
     private val query = MutableStateFlow("")
     private val filter = MutableStateFlow(OwnFilter.All)
     private val selectedCard = MutableStateFlow<CardRow?>(null)
+    private val _importError = MutableStateFlow<String?>(null)
+    val importError: StateFlow<String?> = _importError.asStateFlow()
 
     val state: StateFlow<CollectionUiState> = combine(
         repository.holdings,
         query,
         filter,
-    ) { holdings, _, _ ->
-        if (!Catalog.isLoaded()) return@combine CollectionUiState()
+        repository.catalogReady,
+    ) { holdings, _, _, catalogReady ->
+        if (!catalogReady || !Catalog.isLoaded()) return@combine CollectionUiState()
         val map = holdings.associate { Catalog.cardKey(it.set, it.number) to it.qty }
         val sets = Catalog.sets.map { set ->
             val owned = Catalog.cards.count { card ->
@@ -79,8 +85,27 @@ class CollectionViewModel(private val repository: LabRepository) : ViewModel() {
 
     fun importCsv(text: String, replace: Boolean) {
         viewModelScope.launch {
-            repository.importCsv(parseCollectionCsv(text), replace)
+            _importError.value = null
+            val rows = try {
+                withContext(Dispatchers.Default) { parseCollectionCsv(text) }
+            } catch (error: Exception) {
+                _importError.value = error.message ?: "El archivo CSV no tiene un formato válido."
+                return@launch
+            }
+            if (rows.isEmpty()) {
+                _importError.value = "El CSV no contiene filas de cartas; la colección no se modificó."
+                return@launch
+            }
+            try {
+                repository.importCsv(rows, replace)
+            } catch (error: Exception) {
+                _importError.value = error.message ?: "No se pudo importar el archivo CSV."
+            }
         }
+    }
+
+    fun dismissImportError() {
+        _importError.value = null
     }
 
     fun resetSeed() {

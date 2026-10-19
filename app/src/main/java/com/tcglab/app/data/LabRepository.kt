@@ -1,6 +1,7 @@
 package com.tcglab.app.data
 
 import android.content.Context
+import androidx.room.withTransaction
 import com.tcglab.app.data.db.AppDatabase
 import com.tcglab.app.data.db.ChatMessageEntity
 import com.tcglab.app.data.db.DeckEntity
@@ -13,6 +14,7 @@ import com.tcglab.app.folio.DeckCard
 import com.tcglab.app.folio.Holding
 import com.tcglab.app.folio.CsvRow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
@@ -21,6 +23,7 @@ import java.util.UUID
 class LabRepository(context: Context) {
     private val appContext = context.applicationContext
     private val db = AppDatabase.get(appContext)
+    val catalogReady = MutableStateFlow(false)
 
     val holdings: Flow<List<Holding>> = db.holdings().observeAll().map { list ->
         list.map { Holding(it.setCode, it.number, it.qty) }
@@ -54,9 +57,12 @@ class LabRepository(context: Context) {
         val seeded = db.meta().get("seeded")
         if (seeded == null) {
             val seed = CatalogLoader.loadSeed(appContext)
-            db.holdings().upsertAll(seed.map { it.toEntity() })
-            db.meta().put(MetaEntity("seeded", "1"))
+            db.withTransaction {
+                db.holdings().upsertAll(seed.map { it.toEntity() })
+                db.meta().put(MetaEntity("seeded", "1"))
+            }
         }
+        catalogReady.value = true
     }
 
     suspend fun setQty(set: String, number: Int, qty: Int) {
@@ -67,25 +73,32 @@ class LabRepository(context: Context) {
     }
 
     suspend fun importCsv(rows: List<CsvRow>, replace: Boolean) {
-        if (replace) {
-            db.holdings().clear()
-            db.holdings().upsertAll(rows.map { HoldingEntity(Catalog.cardKey(it.set, it.number), it.set, it.number, it.qty) })
-            return
+        if (rows.isEmpty()) return
+        db.withTransaction {
+            if (replace) {
+                db.holdings().clear()
+                db.holdings().upsertAll(rows.map {
+                    HoldingEntity(Catalog.cardKey(it.set, it.number), it.set, it.number, it.qty)
+                })
+            } else {
+                val current = db.holdings().getAll().associateBy { it.key }.toMutableMap()
+                for (row in rows) {
+                    val key = Catalog.cardKey(row.set, row.number)
+                    val existing = current[key]
+                    val mergedQty = if (existing == null) row.qty else maxOf(existing.qty, row.qty)
+                    current[key] = HoldingEntity(key, row.set, row.number, mergedQty)
+                }
+                db.holdings().upsertAll(current.values.toList())
+            }
         }
-        val current = db.holdings().getAll().associateBy { it.key }.toMutableMap()
-        for (row in rows) {
-            val key = Catalog.cardKey(row.set, row.number)
-            val existing = current[key]
-            val mergedQty = if (existing == null) row.qty else maxOf(existing.qty, row.qty)
-            current[key] = HoldingEntity(key, row.set, row.number, mergedQty)
-        }
-        db.holdings().upsertAll(current.values.toList())
     }
 
     suspend fun resetToSeed() {
-        db.holdings().clear()
         val seed = CatalogLoader.loadSeed(appContext)
-        db.holdings().upsertAll(seed.map { it.toEntity() })
+        db.withTransaction {
+            db.holdings().clear()
+            db.holdings().upsertAll(seed.map { it.toEntity() })
+        }
     }
 
     suspend fun saveDeck(deck: Deck) {

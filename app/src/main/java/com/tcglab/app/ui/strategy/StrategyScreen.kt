@@ -102,6 +102,11 @@ fun StrategyScreen(
             Spacer(Modifier.height(10.dp))
         }
 
+        ui.error?.let { error ->
+            Text(error, color = colors.inkMuted)
+            Spacer(Modifier.height(8.dp))
+        }
+
         listOf(
             "Arma un mazo de fuego con lo que tengo y déjalo listo para el QR",
             "Arma un mazo de agua de 20 cartas, solo con lo que tengo",

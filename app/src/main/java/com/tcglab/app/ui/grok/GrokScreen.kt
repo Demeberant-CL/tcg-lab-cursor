@@ -63,6 +63,10 @@ fun GrokScreen(
                 color = LabInkMuted,
             )
         }
+        ui.error?.let { error ->
+            Spacer(Modifier.height(6.dp))
+            Text(error, color = LabInkMuted)
+        }
         Spacer(Modifier.height(12.dp))
         suggestions.forEach { suggestion ->
             LabSurfaceCard(

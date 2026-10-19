@@ -8,7 +8,6 @@ import com.tcglab.app.folio.Catalog
 import com.tcglab.app.folio.Deck
 import com.tcglab.app.folio.DeckCard
 import com.tcglab.app.folio.Holding
-import com.tcglab.app.folio.canEncode
 import com.tcglab.app.folio.copyLimitReached
 import com.tcglab.app.folio.deckProblems
 import com.tcglab.app.folio.deckTotal
@@ -25,14 +24,16 @@ import java.util.UUID
 data class DecksUiState(
     val decks: List<Deck> = emptyList(),
     val holdings: List<Holding> = emptyList(),
+    val catalogReady: Boolean = false,
 )
 
 class DecksViewModel(private val repository: LabRepository) : ViewModel() {
     val state: StateFlow<DecksUiState> = combine(
         repository.decks,
         repository.holdings,
-    ) { decks, holdings ->
-        DecksUiState(decks, holdings)
+        repository.catalogReady,
+    ) { decks, holdings, catalogReady ->
+        if (catalogReady) DecksUiState(decks, holdings, catalogReady = true) else DecksUiState()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DecksUiState())
 
     fun saveDeck(
@@ -40,7 +41,8 @@ class DecksViewModel(private val repository: LabRepository) : ViewModel() {
         name: String,
         energies: List<Int>,
         cards: List<DeckCard>,
-    ) {
+    ): Boolean {
+        if (!isValid(name, energies, cards)) return false
         viewModelScope.launch {
             repository.saveDeck(
                 Deck(
@@ -52,26 +54,45 @@ class DecksViewModel(private val repository: LabRepository) : ViewModel() {
                 ),
             )
         }
+        return true
     }
+
+    private fun isValid(name: String, energies: List<Int>, cards: List<DeckCard>): Boolean =
+        problems(cards, energies).isEmpty()
 
     fun deleteDeck(id: String) {
         viewModelScope.launch { repository.deleteDeck(id) }
     }
 
-    fun problems(cards: List<DeckCard>, energies: List<Int>): List<String> =
-        deckProblems(resolveDeck(cards), energies)
+    fun problems(cards: List<DeckCard>, energies: List<Int>): List<String> {
+        if (!state.value.catalogReady) return listOf("Cargando el catálogo…")
+        val result = deckProblems(resolveDeck(cards), energies).toMutableList()
+        for ((key, entries) in cards.groupBy { it.set to it.number }) {
+            val required = entries.sumOf { it.count }
+            val owned = state.value.holdings
+                .find { it.set == key.first && it.number == key.second }
+                ?.qty ?: 0
+            if (required > owned) {
+                val cardName = Catalog.findCard(key.first, key.second)?.name ?: "${key.first} ${key.second}"
+                result += "Tienes $owned copias de $cardName y el mazo requiere $required."
+            }
+        }
+        return result
+    }
 
     fun ready(cards: List<DeckCard>, energies: List<Int>): Boolean =
-        canEncode(resolveDeck(cards), energies)
+        problems(cards, energies).isEmpty()
 
     fun qrPayload(cards: List<DeckCard>, energies: List<Int>): String =
         encodeResolved(resolveDeck(cards), energies)
 
     fun total(cards: List<DeckCard>): Int = deckTotal(cards)
 
-    fun canAdd(cards: List<DeckCard>, set: String, number: Int): Boolean {
-        if (deckTotal(cards) >= 20) return false
-        return !copyLimitReached(cards, set, number)
+    fun canAdd(cards: List<DeckCard>, holdings: List<Holding>, set: String, number: Int): Boolean {
+        if (deckTotal(cards) >= 20 || copyLimitReached(cards, set, number)) return false
+        val owned = holdings.find { it.set == set && it.number == number }?.qty ?: 0
+        val inDeck = cards.filter { it.set == set && it.number == number }.sumOf { it.count }
+        return inDeck < owned
     }
 
     fun ownedCards(holdings: List<Holding>) =
