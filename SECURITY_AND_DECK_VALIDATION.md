@@ -5,6 +5,7 @@
 1. `app/build.gradle.kts` incorporaba `XAI_API_KEY` en `BuildConfig`. Toda clave presente al compilar queda dentro del APK y puede extraerse. Las claves de usuario no deben incluirse en artefactos distribuibles.
 2. `ApiKeyStore` guardaba la clave en `SharedPreferences` sin cifrado.
 3. La herramienta `save_deck` en `GrokClient` limitaba cantidades individuales, pero guardaba sin verificar el total de 20 cartas, los límites por nombre/entityId, la existencia de cartas ni las energías.
+4. Un CSV vacío o mal formado podía interpretarse como una colección vacía y borrar las tenencias al usar “Reemplazar”.
 
 ## Cambios aplicados
 
@@ -26,7 +27,14 @@
 - Se valida con `deckProblems(resolveDeck(cards), energies)` en el guardado del asistente y en las pantallas del constructor y hub.
 - El resultado de la herramienta enumera los motivos de rechazo para que Grok pueda corregir el mazo.
 - Se borran mazos por ID y se rechazan cambios de colección que apunten a cartas inexistentes.
-- El reemplazo CSV es transaccional y las pantallas esperan a que termine el bootstrap del catálogo.
+
+### Importación CSV
+
+- Se rechazan filas con set vacío, número inválido o cantidad fuera de 0..99; no se importan parcialmente archivos mal formados.
+- Un archivo sin filas de cartas devuelve un mensaje visible y no modifica la colección.
+- El repositorio también ignora listas vacías como defensa adicional.
+- El reemplazo y la combinación se aplican en una transacción.
+- Se añadieron pruebas unitarias para CSV vacío, encabezado sin datos, filas inválidas y una fila válida.
 
 ## Criterios de aceptación
 
@@ -34,10 +42,10 @@
 - La clave introducida por el usuario se conserva cifrada, se migra desde el almacenamiento anterior y se excluye del backup.
 - `save_deck` no persiste mazos inválidos y el resultado de herramienta enumera los motivos.
 - Un mazo válido de 20 cartas, con límites de copias y energías válidas, se guarda sin alterar su contenido.
-- Ejecutar `gradlew.bat test` y `gradlew.bat assembleDebug` con JDK 17.
+- Un CSV vacío o mal formado no puede eliminar la colección.
 
 ## Estado de la rama
 
-Las correcciones y los hallazgos de la revisión estática se aplicaron en `fix/security-and-deck-validation`. Incluyen el cifrado con Android Keystore, exclusión de preferencias del backup, carga del catálogo antes de derivar pantallas, validación de mazos en todas las pantallas, límites por copias disponibles, borrado de mazos por ID, validación de referencias de colección y transacción para importación de reemplazo.
+Las correcciones se aplicaron en `fix/security-and-deck-validation`. Incluyen cifrado con Android Keystore, exclusión de preferencias del backup, carga del catálogo antes de derivar pantallas, validación de mazos en todas las pantallas y en el asistente, límites por copias disponibles, borrado por ID, validación de referencias de colección y protección de importación CSV.
 
-La comprobación final fue estática mediante los archivos de la rama. Aún falta ejecutar `gradlew.bat test` y `gradlew.bat assembleDebug`; el entorno no pudo clonar el repositorio privado con Git.
+La clonación del PR y la preparación del JDK 17 se completaron. No se pudo ejecutar `gradlew.bat test` ni `gradlew.bat assembleDebug`: Gradle falla antes de configurar el proyecto con `Unable to establish loopback connection` / `Invalid argument: connect` al inicializar su selector de Windows. La ejecución automatizada sigue pendiente.
