@@ -46,10 +46,10 @@ class GrokViewModel(
         if (text.isBlank() || _ui.value.busy) return
         viewModelScope.launch {
             _ui.value = _ui.value.copy(busy = true, error = null, hasKey = apiKeyStore.hasKey())
-            repository.appendChat(ChatUiMessage(role = "user", content = text.trim()))
             val history = messages.value
                 .filter { it.role == "user" || it.role == "assistant" }
                 .map { it.role to it.content }
+            repository.appendChat(ChatUiMessage(role = "user", content = text.trim()))
             val result = client.ask(history, text.trim())
             result.fold(
                 onSuccess = { reply ->
