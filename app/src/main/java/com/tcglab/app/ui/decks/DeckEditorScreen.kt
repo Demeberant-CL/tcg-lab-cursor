@@ -267,7 +267,7 @@ fun DeckEditorScreen(
                 contentPadding = PaddingValues(bottom = 16.dp),
             ) {
                 items(owned, key = { "${it.set}-${it.number}" }) { card ->
-                    val enabled = viewModel.canAdd(cards, card.set, card.number)
+                    val enabled = viewModel.canAdd(cards, state.holdings, card.set, card.number)
                     LabSurfaceCard(
                         onClick = {
                             if (!enabled) return@LabSurfaceCard
