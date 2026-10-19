@@ -158,10 +158,15 @@ class GrokClient(
                             }
                         }
                         "delete_deck" -> {
-                            val deckName = args.getString("name")
-                            repository.deleteDeckByName(deckName)
-                            deleted = deckName
-                            JSONObject().put("ok", true).put("deleted", deckName).toString()
+                            val deckId = args.getString("id")
+                            val deck = decks.find { it.id == deckId }
+                            if (deck == null) {
+                                JSONObject().put("ok", false).put("error", "No existe ese mazo.").toString()
+                            } else {
+                                repository.deleteDeck(deckId)
+                                deleted = deck.name
+                                JSONObject().put("ok", true).put("deleted", deck.name).toString()
+                            }
                         }
                         else -> JSONObject().put("error", "Herramienta desconocida").toString()
                     }
@@ -190,7 +195,7 @@ class GrokClient(
             val key = if (card.trainer) "trainer" else card.element.ifBlank { "other" }
             byType[key] = (byType[key] ?: 0) + 1
         }
-        val deckLines = decks.joinToString("; ") { "${it.name} (${it.cards.sumOf { c -> c.count }}/20)" }
+        val deckLines = decks.joinToString("; ") { "${it.name} [id=${it.id}] (${it.cards.sumOf { c -> c.count }}/20)" }
         return buildString {
             append("cartas distintas=${owned.size}, copias=$copies. ")
             append("por set=${bySet.entries.joinToString { "${it.key}:${it.value}" }}. ")
@@ -298,11 +303,11 @@ class GrokClient(
             .put(
                 tool(
                     "delete_deck",
-                    "Borra un mazo por nombre",
+                    "Borra un mazo por id. Usa el id que aparece en el resumen de mazos.",
                     JSONObject()
                         .put("type", "object")
-                        .put("properties", JSONObject().put("name", stringType))
-                        .put("required", JSONArray().put("name")),
+                        .put("properties", JSONObject().put("id", stringType))
+                        .put("required", JSONArray().put("id")),
                 ),
             )
     }
@@ -379,9 +384,11 @@ class GrokClient(
             val obj = updates.getJSONObject(i)
             val set = Catalog.canonSet(obj.getString("set"))
             val number = obj.getInt("number")
-            val qty = obj.getInt("qty").coerceIn(0, 99)
+            val qty = obj.getInt("qty")
+            require(qty in 0..99) { "La cantidad debe estar entre 0 y 99." }
             val card = Catalog.findCard(set, number)
-            val from = holdings.find { it.set == set && it.number == number }?.qty ?: 0
+                ?: throw IllegalArgumentException("No existe la carta $set $number.")
+            val from = holdings.find { it.set == card.set && it.number == number }?.qty ?: 0
             changes += CollectionChange(
                 set = set,
                 number = number,
