@@ -72,17 +72,22 @@ fun parseCollectionCsv(text: String): List<CsvRow> {
     val rarityIndex = if (hasHeader) index(listOf("rareza", "rarity"), 4) else 4
 
     val rows = mutableListOf<CsvRow>()
-    for (cells in body) {
-        val set = Catalog.canonSet(cells.getOrNull(setIndex).orEmpty())
-        val number = cells.getOrNull(idIndex)?.toIntOrNull() ?: continue
-        val qty = cells.getOrNull(qtyIndex)?.trim()?.toIntOrNull() ?: 0
-        if (set.isEmpty() || number < 1 || qty < 0) continue
+    for ((rowIndex, cells) in body.withIndex()) {
+        val rawSet = cells.getOrNull(setIndex)?.trim().orEmpty()
+        require(rawSet.isNotBlank()) { "Fila ${rowIndex + 1}: falta el set." }
+        val number = cells.getOrNull(idIndex)?.trim()?.toIntOrNull()
+            ?: throw IllegalArgumentException("Fila ${rowIndex + 1}: número de carta inválido.")
+        require(number >= 1) { "Fila ${rowIndex + 1}: número de carta inválido." }
+        val qty = cells.getOrNull(qtyIndex)?.trim()?.toIntOrNull()
+            ?: throw IllegalArgumentException("Fila ${rowIndex + 1}: cantidad inválida.")
+        require(qty in 0..99) { "Fila ${rowIndex + 1}: la cantidad debe estar entre 0 y 99." }
+        val set = Catalog.canonSet(rawSet)
         val name = cells.getOrNull(nameIndex)?.trim().orEmpty()
         val rarity = canonRarity(cells.getOrNull(rarityIndex).orEmpty())
         rows += CsvRow(
             set = set,
             number = number,
-            qty = qty.coerceAtMost(99),
+            qty = qty,
             name = name.ifEmpty { null },
             rarity = rarity,
         )
