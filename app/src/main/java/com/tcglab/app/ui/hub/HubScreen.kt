@@ -84,6 +84,7 @@ fun HubScreen(
     rootModifier: Modifier = Modifier,
 ) {
     val collection by collectionVm.state.collectAsState()
+    val importError by collectionVm.importError.collectAsState()
     val decksState by decksVm.state.collectAsState()
     val grokMessages by grokVm.messages.collectAsState()
     val grokUi by grokVm.ui.collectAsState()
@@ -586,6 +587,17 @@ fun HubScreen(
                 Spacer(Modifier.height(20.dp))
             }
         }
+    }
+
+    if (importError != null) {
+        AlertDialog(
+            onDismissRequest = collectionVm::dismissImportError,
+            title = { Text("No se pudo importar") },
+            text = { Text(importError.orEmpty()) },
+            confirmButton = {
+                LabTextButton(text = "Aceptar", onClick = collectionVm::dismissImportError)
+            },
+        )
     }
 
     if (importAsk && pendingCsv != null) {
