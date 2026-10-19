@@ -73,6 +73,7 @@ class LabRepository(context: Context) {
     }
 
     suspend fun importCsv(rows: List<CsvRow>, replace: Boolean) {
+        if (rows.isEmpty()) return
         db.withTransaction {
             if (replace) {
                 db.holdings().clear()
