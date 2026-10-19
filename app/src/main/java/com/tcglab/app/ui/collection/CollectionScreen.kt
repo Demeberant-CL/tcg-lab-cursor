@@ -52,6 +52,7 @@ fun CollectionScreen(
     onOpenSet: (String) -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
+    val importError by viewModel.importError.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var menuOpen by remember { mutableStateOf(false) }
@@ -158,6 +159,17 @@ fun CollectionScreen(
                 }
             }
         }
+    }
+
+    if (importError != null) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissImportError,
+            title = { Text("No se pudo importar") },
+            text = { Text(importError.orEmpty()) },
+            confirmButton = {
+                LabTextButton(text = "Aceptar", onClick = viewModel::dismissImportError)
+            },
+        )
     }
 
     if (importMode == true && pendingCsv != null) {
