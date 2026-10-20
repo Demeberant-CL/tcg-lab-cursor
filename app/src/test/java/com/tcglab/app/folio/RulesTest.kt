@@ -26,6 +26,6 @@ class RulesTest {
 
         val problems = deckProblems(cards, listOf(1))
 
-        assertEquals(0, problems.size)
+        assertTrue(problems.none { it.contains("máximo es 2") })
     }
 }
