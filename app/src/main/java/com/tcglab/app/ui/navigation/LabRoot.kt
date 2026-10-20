@@ -1,13 +1,17 @@
 package com.tcglab.app.ui.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -29,6 +33,7 @@ import com.tcglab.app.ui.home.HomeScreen
 import com.tcglab.app.ui.settings.SettingsScreen
 import com.tcglab.app.ui.strategy.StrategyScreen
 import com.tcglab.app.ui.theme.LabTheme
+import kotlinx.coroutines.launch
 
 private object Routes {
     const val Home = "home"
@@ -47,6 +52,8 @@ fun LabRoot(
     themePreferences: ThemePreferences,
 ) {
     val catalogReady by repository.catalogReady.collectAsState()
+    val catalogError by repository.catalogError.collectAsState()
+    val scope = rememberCoroutineScope()
     val colors = LabTheme.colors
 
     Scaffold(
@@ -60,7 +67,22 @@ fun LabRoot(
                     .padding(padding),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator()
+                if (catalogError == null) {
+                    CircularProgressIndicator()
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text("No se pudo cargar el catálogo.")
+                        Text(
+                            text = catalogError.orEmpty(),
+                            modifier = Modifier.padding(16.dp),
+                        )
+                        Button(onClick = { scope.launch { repository.bootstrap() } }) {
+                            Text("Reintentar")
+                        }
+                    }
+                }
             }
             return@Scaffold
         }
