@@ -88,6 +88,7 @@ class GrokClient(
             var savedDeck: Deck? = null
             var deleted: String? = null
             var finalText = ""
+            var completed = false
             var model = models.first()
 
             var round = 0
@@ -135,6 +136,7 @@ class GrokClient(
                     val toolCalls = choice.optJSONArray("tool_calls")
                     if (toolCalls == null || toolCalls.length() == 0) {
                         finalText = choice.optString("content").orEmpty()
+                        completed = finalText.isNotBlank()
                         break
                     }
                     for (i in 0 until toolCalls.length()) {
@@ -188,8 +190,9 @@ class GrokClient(
                     response.close()
                 }
             }
+            require(completed) { "La respuesta de la IA no terminó correctamente; no se guardaron cambios." }
             repository.applyAiMutations(changes, savedDecks, deletedDeckIds)
-            Result.success(GrokReply(finalText.ifBlank { "Listo." }, changes, savedDeck, deleted))
+            Result.success(GrokReply(finalText, changes, savedDeck, deleted))
         } catch (e: Exception) {
             Result.failure(e)
         }
