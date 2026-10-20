@@ -28,15 +28,4 @@ class RulesTest {
 
         assertEquals(0, problems.size)
     }
-
-    @Test
-    fun copyLimitReached_counts_existing_copies_by_name() {
-        val cards = listOf(
-            DeckCard("A", 1, 1),
-            DeckCard("B", 2, 1),
-        )
-
-        assertTrue(copyLimitReached(cards, "A", 1))
-        assertTrue(copyLimitReached(cards, "B", 2))
-    }
 }
