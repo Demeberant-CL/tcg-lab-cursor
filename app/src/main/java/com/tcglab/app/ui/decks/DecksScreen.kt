@@ -41,27 +41,45 @@ fun DecksScreen(
             .padding(horizontal = 20.dp, vertical = 16.dp),
     ) {
         BrandHeader(stringResource(R.string.decks_title))
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = "Gestiona tus mazos guardados. Para crear uno nuevo, usa TCG LAB AI.",
+            color = LabInkMuted,
+        )
+        Spacer(Modifier.height(12.dp))
         LabPrimaryButton(
-            text = stringResource(R.string.new_deck),
+            text = "Crear con TCG LAB AI",
             onClick = onNewDeck,
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(16.dp))
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 24.dp),
-        ) {
-            items(state.decks, key = { it.id }) { deck ->
-                LabSurfaceCard(onClick = { onOpenDeck(deck.id) }) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(deck.name, color = LabInk)
-                        Spacer(Modifier.height(4.dp))
-                        Text("${deckTotal(deck.cards)}/20", color = LabInkMuted)
-                        if (deck.energies.isNotEmpty()) {
-                            Spacer(Modifier.height(8.dp))
-                            EnergyRow(deck.energies)
-                            Text(energyLabel(deck.energies), color = LabInkMuted)
+        if (state.decks.isEmpty()) {
+            LabSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Todavía no tienes mazos", color = LabInk)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Pide al asistente un mazo basado en las cartas que tienes.",
+                        color = LabInkMuted,
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 24.dp),
+            ) {
+                items(state.decks, key = { it.id }) { deck ->
+                    LabSurfaceCard(onClick = { onOpenDeck(deck.id) }) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text(deck.name, color = LabInk)
+                            Spacer(Modifier.height(4.dp))
+                            Text("${deckTotal(deck.cards)}/20", color = LabInkMuted)
+                            if (deck.energies.isNotEmpty()) {
+                                Spacer(Modifier.height(8.dp))
+                                EnergyRow(deck.energies)
+                                Text(energyLabel(deck.energies), color = LabInkMuted)
+                            }
                         }
                     }
                 }
