@@ -101,9 +101,9 @@ class GrokClient(
                     .addHeader("Content-Type", "application/json")
                     .post(body.toString().toRequestBody("application/json".toMediaType()))
                     .build()
-                val response = client.newCall(request).execute()
-                val payload = response.body?.string().orEmpty()
-                if (!response.isSuccessful) {
+                client.newCall(request).execute().use { response ->
+                    val payload = response.body?.string().orEmpty()
+                    if (!response.isSuccessful) {
                     val detail = runCatching {
                         JSONObject(payload).optString("error").ifBlank {
                             JSONObject(payload).optJSONObject("error")?.optString("message").orEmpty()
@@ -122,23 +122,23 @@ class GrokClient(
                         429 -> "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
                         else -> detail.ifBlank { "Error de Grok (${response.code})." }
                     }
-                    return@withContext Result.failure(IllegalStateException(hint))
-                }
-                val root = JSONObject(payload)
-                val choice = root.getJSONArray("choices").getJSONObject(0).getJSONObject("message")
-                messages.put(choice)
-                val toolCalls = choice.optJSONArray("tool_calls")
-                if (toolCalls == null || toolCalls.length() == 0) {
-                    finalText = choice.optString("content").orEmpty()
-                    break
-                }
-                for (i in 0 until toolCalls.length()) {
-                    val call = toolCalls.getJSONObject(i)
-                    val id = call.getString("id")
-                    val fn = call.getJSONObject("function")
-                    val name = fn.getString("name")
-                    val args = JSONObject(fn.optString("arguments", "{}"))
-                    val toolResult = when (name) {
+                        return@withContext Result.failure(IllegalStateException(hint))
+                    }
+                    val root = JSONObject(payload)
+                    val choice = root.getJSONArray("choices").getJSONObject(0).getJSONObject("message")
+                    messages.put(choice)
+                    val toolCalls = choice.optJSONArray("tool_calls")
+                    if (toolCalls == null || toolCalls.length() == 0) {
+                        finalText = choice.optString("content").orEmpty()
+                        break
+                    }
+                    for (i in 0 until toolCalls.length()) {
+                        val call = toolCalls.getJSONObject(i)
+                        val id = call.getString("id")
+                        val fn = call.getJSONObject("function")
+                        val name = fn.getString("name")
+                        val args = JSONObject(fn.optString("arguments", "{}"))
+                        val toolResult = when (name) {
                         "search_catalog" -> searchCatalog(args)
                         "list_owned" -> listOwned(args, holdings)
                         "update_collection" -> {
@@ -170,12 +170,13 @@ class GrokClient(
                         }
                         else -> JSONObject().put("error", "Herramienta desconocida").toString()
                     }
-                    messages.put(
-                        JSONObject()
-                            .put("role", "tool")
-                            .put("tool_call_id", id)
-                            .put("content", toolResult),
-                    )
+                        messages.put(
+                            JSONObject()
+                                .put("role", "tool")
+                                .put("tool_call_id", id)
+                                .put("content", toolResult),
+                        )
+                    }
                 }
             }
             if (changes.isNotEmpty()) repository.applyCollectionChanges(changes)
