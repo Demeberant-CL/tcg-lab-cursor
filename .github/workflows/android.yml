@@ -29,5 +29,11 @@ jobs:
       - name: Install Android 35 platform
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
+      - name: Enable Gradle wrapper
+        run: chmod +x gradlew
+
+      - name: Configure Gradle cache
+        uses: gradle/actions/setup-gradle@v6
+
       - name: Run unit tests and assemble debug APK
-        run: sh gradlew --no-daemon test assembleDebug
+        run: ./gradlew --no-daemon test assembleDebug
