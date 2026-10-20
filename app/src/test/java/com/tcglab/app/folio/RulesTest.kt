@@ -28,4 +28,17 @@ class RulesTest {
 
         assertTrue(problems.none { it.contains("máximo es 2") })
     }
+    @Test
+    fun deckProblems_rejects_invalid_or_repeated_energies() {
+        val cards = listOf(
+            ResolvedDeckCard("A", 1, 20, "Pikachu", 101, false, "", "Lightning"),
+        )
+
+        val invalid = deckProblems(cards, listOf(1, 9))
+        assertTrue(invalid.any { it.contains("energías inválidas") })
+
+        val repeated = deckProblems(cards, listOf(1, 1))
+        assertTrue(repeated.any { it.contains("No puedes repetir") })
+    }
+
 }
