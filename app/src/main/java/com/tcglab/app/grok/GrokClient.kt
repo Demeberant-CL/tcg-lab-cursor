@@ -101,7 +101,8 @@ class GrokClient(
                     .addHeader("Content-Type", "application/json")
                     .post(body.toString().toRequestBody("application/json".toMediaType()))
                     .build()
-                client.newCall(request).execute().use { response ->
+                val response = client.newCall(request).execute()
+                try {
                     val payload = response.body?.string().orEmpty()
                     if (!response.isSuccessful) {
                     val detail = runCatching {
@@ -177,6 +178,8 @@ class GrokClient(
                                 .put("content", toolResult),
                         )
                     }
+                } finally {
+                    response.close()
                 }
             }
             if (changes.isNotEmpty()) repository.applyCollectionChanges(changes)
