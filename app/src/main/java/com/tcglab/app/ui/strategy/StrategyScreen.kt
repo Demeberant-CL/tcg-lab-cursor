@@ -1,6 +1,7 @@
 package com.tcglab.app.ui.strategy
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,8 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Icon
@@ -46,13 +48,17 @@ fun StrategyScreen(
     val ui by grokVm.ui.collectAsState()
     var draft by remember { mutableStateOf("") }
     var apiDraft by remember { mutableStateOf("") }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
+    }
 
     LaunchedEffect(Unit) { grokVm.refreshKeyState() }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -60,13 +66,13 @@ fun StrategyScreen(
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Volver", tint = colors.ink)
             }
             Text(
-                text = "Pedir una estrategia",
+                text = "TCG LAB AI",
                 color = colors.ink,
                 fontWeight = FontWeight.SemiBold,
             )
         }
         Text(
-            text = "El asistente sugiere mazos con un resumen de tu colección.",
+            text = "Crea y mejora mazos usando tu colección.",
             color = colors.inkMuted,
         )
         Spacer(Modifier.height(12.dp))
@@ -122,21 +128,42 @@ fun StrategyScreen(
             }
         }
 
-        messages.takeLast(10).forEach { message ->
-            LabSurfaceCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+        if (messages.isEmpty()) {
+            Text("¿Qué quieres hacer?", color = colors.ink, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(8.dp))
+            listOf(
+                "Arma un mazo de fuego con lo que tengo y déjalo listo para el QR",
+                "Arma un mazo de agua de 20 cartas, solo con lo que tengo",
+                "¿Qué ex de rayo tengo?",
+            ).forEach { suggestion ->
+                LabSurfaceCard(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    onClick = { if (ui.hasKey && !ui.busy) grokVm.send(suggestion) },
+                ) {
+                    Text(suggestion, Modifier.padding(14.dp), color = colors.ink)
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                state = listState,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(vertical = 8.dp),
             ) {
-                Column(Modifier.padding(14.dp)) {
-                    Text(
-                        if (message.role == "user") "Tú" else "Asistente",
-                        color = colors.inkMuted,
-                    )
-                    Text(message.content, color = colors.ink)
-                    if (message.deckEvent == "saved" && message.deckId != null) {
-                        LabTextButton("Abrir ${message.deckName ?: "mazo"}") {
-                            onOpenDeck(message.deckId)
+                items(messages.takeLast(20), key = { it.id }) { message ->
+                    LabSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(14.dp)) {
+                            Text(
+                                if (message.role == "user") "Tú" else "TCG LAB AI",
+                                color = colors.inkMuted,
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(message.content, color = colors.ink)
+                            if (message.deckEvent == "saved" && message.deckId != null) {
+                                LabTextButton("Abrir ${message.deckName ?: "mazo"}") {
+                                    onOpenDeck(message.deckId)
+                                }
+                            }
                         }
                     }
                 }
@@ -152,7 +179,7 @@ fun StrategyScreen(
                 value = draft,
                 onValueChange = { draft = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Pide una estrategia…") },
+                placeholder = { Text("Pide un mazo o estrategia…") },
                 enabled = ui.hasKey && !ui.busy,
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
