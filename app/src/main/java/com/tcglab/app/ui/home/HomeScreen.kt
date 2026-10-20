@@ -151,4 +151,117 @@ private fun HomeActionCard(
             Text(text = subtitle, color = colors.inkMuted)
         }
     }
-}@Composable\nfun HomeScreen(\n    collectionVm: CollectionViewModel,\n    onOpenCollection: () -> Unit,\n    onOpenDeck: () -> Unit,\n    onOpenStrategy: () -> Unit,\n    onOpenSettings: () -> Unit,\n    modifier: Modifier = Modifier,\n) {\n    val state by collectionVm.state.collectAsState()\n    val colors = LabTheme.colors\n\n    Column(\n        modifier = modifier\n            .fillMaxSize()\n            .padding(horizontal = 18.dp, vertical = 14.dp),\n        verticalArrangement = Arrangement.spacedBy(12.dp),\n    ) {\n        Row(\n            modifier = Modifier.fillMaxWidth(),\n            verticalAlignment = Alignment.CenterVertically,\n        ) {\n            Column(Modifier.weight(1f)) {\n                Text("TCG LAB", color = colors.ink, fontWeight = FontWeight.Bold)\n                Text("Tu colección, tus mazos, tu asistente", color = colors.inkMuted)\n            }\n            IconButton(onClick = onOpenSettings) {\n                Icon(Icons.Outlined.Settings, contentDescription = "Ajustes", tint = colors.ink)\n            }\n        }\n\n        if (state.ready && Catalog.isLoaded()) {\n            val (distinct, copies, ex) = collectionVm.stats(state.holdings)\n            val totalCards = Catalog.cards.size\n            LabSurfaceCard(modifier = Modifier.fillMaxWidth()) {\n                Column(Modifier.padding(16.dp)) {\n                    Row(\n                        modifier = Modifier.fillMaxWidth(),\n                        verticalAlignment = Alignment.CenterVertically,\n                    ) {\n                        Column(Modifier.weight(1f)) {\n                            Text("Tu colección", color = colors.ink, fontWeight = FontWeight.SemiBold)\n                            Text("$distinct de $totalCards cartas distintas", color = colors.inkMuted)\n                        }\n                        Text(\n                            text = "${if (totalCards == 0) 0 else distinct * 100 / totalCards}%",\n                            color = colors.ink,\n                            fontWeight = FontWeight.Bold,\n                        )\n                    }\n                    Spacer(Modifier.height(10.dp))\n                    ThinProgress(owned = distinct, total = totalCards)\n                    Spacer(Modifier.height(10.dp))\n                    Row(\n                        modifier = Modifier.fillMaxWidth(),\n                        horizontalArrangement = Arrangement.SpaceBetween,\n                    ) {\n                        HomeStat("Cartas", distinct.toString())\n                        HomeStat("Copias", copies.toString())\n                        HomeStat("ex", ex.toString())\n                    }\n                }\n            }\n        }\n\n        Text("Accesos rápidos", color = colors.ink, fontWeight = FontWeight.SemiBold)\n\n        Row(\n            modifier = Modifier.fillMaxWidth(),\n            horizontalArrangement = Arrangement.spacedBy(10.dp),\n        ) {\n            HomeActionCard(\n                modifier = Modifier.weight(1f),\n                icon = Icons.Outlined.CollectionsBookmark,\n                title = "Colección",\n                subtitle = "Ver cartas",\n                onClick = onOpenCollection,\n            )\n            HomeActionCard(\n                modifier = Modifier.weight(1f),\n                icon = Icons.Outlined.Style,\n                title = "Mis mazos",\n                subtitle = "Crear y abrir",\n                onClick = onOpenDeck,\n            )\n        }\n\n        LabSurfaceCard(modifier = Modifier.fillMaxWidth(), onClick = onOpenStrategy) {\n            Row(\n                modifier = Modifier.padding(16.dp),\n                verticalAlignment = Alignment.CenterVertically,\n            ) {\n                Icon(\n                    imageVector = Icons.Outlined.AutoAwesome,\n                    contentDescription = null,\n                    tint = colors.ink,\n                    modifier = Modifier.size(28.dp),\n                )\n                Spacer(Modifier.size(14.dp))\n                Column(Modifier.weight(1f)) {\n                    Text("TCG LAB AI", color = colors.ink, fontWeight = FontWeight.Bold)\n                    Text("Crea y mejora mazos usando solo tu colección", color = colors.inkMuted)\n                }\n            }\n        }\n\n        Text(\n            "La IA puede analizar tus cartas y preparar un mazo de 20 cartas listo para generar su QR.",\n            color = colors.inkMuted,\n        )\n    }\n}\n\n
+}@Composable
+fun HomeScreen(
+    collectionVm: CollectionViewModel,
+    onOpenCollection: () -> Unit,
+    onOpenDeck: () -> Unit,
+    onOpenStrategy: () -> Unit,
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val state by collectionVm.state.collectAsState()
+    val colors = LabTheme.colors
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("TCG LAB", color = colors.ink, fontWeight = FontWeight.Bold)
+                Text("Tu colección, tus mazos, tu asistente", color = colors.inkMuted)
+            }
+            IconButton(onClick = onOpenSettings) {
+                Icon(Icons.Outlined.Settings, contentDescription = "Ajustes", tint = colors.ink)
+            }
+        }
+
+        if (state.ready && Catalog.isLoaded()) {
+            val (distinct, copies, ex) = collectionVm.stats(state.holdings)
+            val totalCards = Catalog.cards.size
+            LabSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Tu colección", color = colors.ink, fontWeight = FontWeight.SemiBold)
+                            Text("$distinct de $totalCards cartas distintas", color = colors.inkMuted)
+                        }
+                        Text(
+                            text = "${if (totalCards == 0) 0 else distinct * 100 / totalCards}%",
+                            color = colors.ink,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    ThinProgress(owned = distinct, total = totalCards)
+                    Spacer(Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        HomeStat("Cartas", distinct.toString())
+                        HomeStat("Copias", copies.toString())
+                        HomeStat("ex", ex.toString())
+                    }
+                }
+            }
+        }
+
+        Text("Accesos rápidos", color = colors.ink, fontWeight = FontWeight.SemiBold)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            HomeActionCard(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Outlined.CollectionsBookmark,
+                title = "Colección",
+                subtitle = "Ver cartas",
+                onClick = onOpenCollection,
+            )
+            HomeActionCard(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Outlined.Style,
+                title = "Mis mazos",
+                subtitle = "Crear y abrir",
+                onClick = onOpenDeck,
+            )
+        }
+
+        LabSurfaceCard(modifier = Modifier.fillMaxWidth(), onClick = onOpenStrategy) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.AutoAwesome,
+                    contentDescription = null,
+                    tint = colors.ink,
+                    modifier = Modifier.size(28.dp),
+                )
+                Spacer(Modifier.size(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("TCG LAB AI", color = colors.ink, fontWeight = FontWeight.Bold)
+                    Text("Crea y mejora mazos usando solo tu colección", color = colors.inkMuted)
+                }
+            }
+        }
+
+        Text(
+            "La IA puede analizar tus cartas y preparar un mazo de 20 cartas listo para generar su QR.",
+            color = colors.inkMuted,
+        )
+    }
+}
+
+
