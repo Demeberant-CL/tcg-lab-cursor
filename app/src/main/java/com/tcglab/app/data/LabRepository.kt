@@ -225,7 +225,7 @@ private fun encodeChanges(changes: List<CollectionChange>): String =
 
 private fun parseChanges(json: String): List<CollectionChange> = runCatching {
     val array = JSONArray(json)
-    return buildList {
+    buildList {
         for (i in 0 until array.length()) {
             val obj = array.getJSONObject(i)
             add(
