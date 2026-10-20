@@ -195,17 +195,23 @@ private fun Deck.toEntity() = DeckEntity(
 )
 
 private fun DeckEntity.toDeck(): Deck {
-    val energiesArray = JSONArray(energiesJson)
-    val energies = buildList {
-        for (i in 0 until energiesArray.length()) add(energiesArray.getInt(i))
-    }
-    val cardsArray = JSONArray(cardsJson)
-    val cards = buildList {
-        for (i in 0 until cardsArray.length()) {
-            val obj = cardsArray.getJSONObject(i)
-            add(DeckCard(obj.getString("set"), obj.getInt("number"), obj.getInt("count")))
+    val energies = runCatching {
+        val array = JSONArray(energiesJson)
+        buildList {
+            for (i in 0 until array.length()) add(array.getInt(i))
         }
-    }
+    }.getOrDefault(emptyList())
+
+    val cards = runCatching {
+        val array = JSONArray(cardsJson)
+        buildList {
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                add(DeckCard(obj.getString("set"), obj.getInt("number"), obj.getInt("count")))
+            }
+        }
+    }.getOrDefault(emptyList())
+
     return Deck(id, name, energies, cards, updatedAt)
 }
 
