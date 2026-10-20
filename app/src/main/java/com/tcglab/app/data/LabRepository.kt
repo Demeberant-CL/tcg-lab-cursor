@@ -129,14 +129,30 @@ class LabRepository(context: Context) {
 
     suspend fun getDeck(id: String): Deck? = db.decks().getById(id)?.toDeck()
 
-    suspend fun applyCollectionChanges(changes: List<CollectionChange>) {
-        if (changes.isEmpty()) return
-        db.holdings().upsertAll(
-            changes.map {
-                HoldingEntity(Catalog.cardKey(it.set, it.number), it.set, it.number, it.to.coerceIn(0, 99))
-            },
-        )
+    suspend fun applyAiMutations(
+        changes: List<CollectionChange>,
+        savedDecks: List<Deck>,
+        deletedDeckIds: List<String>,
+    ) {
+        if (changes.isEmpty() && savedDecks.isEmpty() && deletedDeckIds.isEmpty()) return
+        db.withTransaction {
+            if (changes.isNotEmpty()) {
+                db.holdings().upsertAll(
+                    changes.map {
+                        HoldingEntity(
+                            Catalog.cardKey(it.set, it.number),
+                            it.set,
+                            it.number,
+                            it.to.coerceIn(0, 99),
+                        )
+                    },
+                )
+            }
+            savedDecks.forEach { db.decks().upsert(it.toEntity()) }
+            deletedDeckIds.distinct().forEach { db.decks().delete(it) }
+        }
     }
+
 
     suspend fun appendChat(message: ChatUiMessage) {
         db.chat().insert(
