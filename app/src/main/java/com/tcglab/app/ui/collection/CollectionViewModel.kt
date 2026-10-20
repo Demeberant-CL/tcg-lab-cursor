@@ -44,10 +44,8 @@ class CollectionViewModel(private val repository: LabRepository) : ViewModel() {
 
     val state: StateFlow<CollectionUiState> = combine(
         repository.holdings,
-        query,
-        filter,
         repository.catalogReady,
-    ) { holdings, _, _, catalogReady ->
+    ) { holdings, catalogReady ->
         if (!catalogReady || !Catalog.isLoaded()) return@combine CollectionUiState()
         val map = holdings.associate { Catalog.cardKey(it.set, it.number) to it.qty }
         val sets = Catalog.sets.map { set ->
@@ -128,8 +126,14 @@ class CollectionViewModel(private val repository: LabRepository) : ViewModel() {
             }
         }
         if (q.isEmpty()) return filtered
+
+        val allowedKeys = filtered
+            .asSequence()
+            .map { Catalog.cardKey(it.set, it.number) }
+            .toHashSet()
+
         return Catalog.searchCards(query.value, set = setCode, limit = 200)
-            .filter { card -> filtered.any { it.set == card.set && it.number == card.number } }
+            .filter { card -> Catalog.cardKey(card.set, card.number) in allowedKeys }
     }
 
     fun stats(holdings: Map<String, Int>): Triple<Int, Int, Int> {
