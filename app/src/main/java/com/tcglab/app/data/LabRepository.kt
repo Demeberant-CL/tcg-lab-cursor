@@ -86,14 +86,20 @@ class LabRepository(context: Context) {
             if (replace) {
                 db.holdings().clear()
                 db.holdings().upsertAll(rows.map {
-                    HoldingEntity(Catalog.cardKey(it.set, it.number), it.set, it.number, it.qty)
+                    HoldingEntity(
+                        Catalog.cardKey(it.set, it.number),
+                        it.set,
+                        it.number,
+                        it.qty.coerceIn(0, 99),
+                    )
                 })
             } else {
                 val current = db.holdings().getAll().associateBy { it.key }.toMutableMap()
                 for (row in rows) {
                     val key = Catalog.cardKey(row.set, row.number)
                     val existing = current[key]
-                    val mergedQty = if (existing == null) row.qty else maxOf(existing.qty, row.qty)
+                    val incomingQty = row.qty.coerceIn(0, 99)
+                    val mergedQty = if (existing == null) incomingQty else maxOf(existing.qty, incomingQty)
                     current[key] = HoldingEntity(key, row.set, row.number, mergedQty)
                 }
                 db.holdings().upsertAll(current.values.toList())
@@ -217,7 +223,7 @@ private fun encodeChanges(changes: List<CollectionChange>): String =
         }
     }.toString()
 
-private fun parseChanges(json: String): List<CollectionChange> {
+private fun parseChanges(json: String): List<CollectionChange> = runCatching {
     val array = JSONArray(json)
     return buildList {
         for (i in 0 until array.length()) {
@@ -233,4 +239,4 @@ private fun parseChanges(json: String): List<CollectionChange> {
             )
         }
     }
-}
+}.getOrDefault(emptyList())
