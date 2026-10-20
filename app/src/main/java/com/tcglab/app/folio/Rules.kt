@@ -28,6 +28,14 @@ fun deckProblems(cards: List<ResolvedDeckCard>, energies: List<Int>): List<Strin
     }
     if (energies.isEmpty() || energies.size > 3) {
         problems += "Elige entre 1 y 3 energías."
+    } else {
+        val invalidEnergies = energies.filter { it !in 1..8 }.distinct()
+        if (invalidEnergies.isNotEmpty()) {
+            problems += "Hay energías inválidas: ${invalidEnergies.joinToString(", ")}."
+        }
+        if (energies.size != energies.toSet().size) {
+            problems += "No puedes repetir el mismo tipo de energía."
+        }
     }
     val byName = linkedMapOf<String, Pair<String, Int>>()
     for (card in cards) {
