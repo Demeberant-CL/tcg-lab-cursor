@@ -80,7 +80,11 @@ class GrokClient(
                 put(JSONObject().put("role", "user").put("content", userText))
             }
 
-            var changes = mutableListOf<CollectionChange>()
+            val workingHoldings = holdings.associateBy { it.set to it.number }.toMutableMap()
+            val workingDecks = decks.toMutableList()
+            val changes = mutableListOf<CollectionChange>()
+            val savedDecks = mutableListOf<Deck>()
+            val deletedDeckIds = mutableListOf<String>()
             var savedDeck: Deck? = null
             var deleted: String? = null
             var finalText = ""
@@ -141,18 +145,19 @@ class GrokClient(
                         val args = JSONObject(fn.optString("arguments", "{}"))
                         val toolResult = when (name) {
                         "search_catalog" -> searchCatalog(args)
-                        "list_owned" -> listOwned(args, holdings)
+                        "list_owned" -> listOwned(args, workingHoldings.values.toList())
                         "update_collection" -> {
-                            val result = updateCollection(args, holdings)
+                            val result = updateCollection(args, workingHoldings)
                             changes += result.first
                             result.second
                         }
                         "save_deck" -> {
-                            val result = runCatching { saveDeck(args, holdings) }
+                            val result = runCatching { saveDeck(args, workingHoldings.values.toList()) }
                             if (result.isSuccess) {
                                 val deck = result.getOrThrow()
                                 savedDeck = deck
-                                repository.saveDeck(deck)
+                                savedDecks += deck
+                                workingDecks += deck
                                 JSONObject().put("ok", true).put("id", deck.id).put("name", deck.name).toString()
                             } else {
                                 JSONObject().put("ok", false).put("error", result.exceptionOrNull()?.message ?: "Mazo inválido").toString()
@@ -160,11 +165,12 @@ class GrokClient(
                         }
                         "delete_deck" -> {
                             val deckId = args.getString("id")
-                            val deck = decks.find { it.id == deckId }
+                            val deck = workingDecks.find { it.id == deckId }
                             if (deck == null) {
                                 JSONObject().put("ok", false).put("error", "No existe ese mazo.").toString()
                             } else {
-                                repository.deleteDeck(deckId)
+                                deletedDeckIds += deckId
+                                workingDecks.removeAll { it.id == deckId }
                                 deleted = deck.name
                                 JSONObject().put("ok", true).put("deleted", deck.name).toString()
                             }
@@ -182,7 +188,7 @@ class GrokClient(
                     response.close()
                 }
             }
-            if (changes.isNotEmpty()) repository.applyCollectionChanges(changes)
+            repository.applyAiMutations(changes, savedDecks, deletedDeckIds)
             Result.success(GrokReply(finalText.ifBlank { "Listo." }, changes, savedDeck, deleted))
         } catch (e: Exception) {
             Result.failure(e)
@@ -380,10 +386,12 @@ class GrokClient(
 
     private fun updateCollection(
         args: JSONObject,
-        holdings: List<Holding>,
+        holdings: MutableMap<Pair<String, Int>, Holding>,
     ): Pair<List<CollectionChange>, String> {
         val updates = args.getJSONArray("updates")
+        require(updates.length() in 1..60) { "Puedes actualizar entre 1 y 60 cartas por solicitud." }
         val changes = mutableListOf<CollectionChange>()
+        val seen = mutableSetOf<Pair<String, Int>>()
         for (i in 0 until updates.length()) {
             val obj = updates.getJSONObject(i)
             val set = Catalog.canonSet(obj.getString("set"))
@@ -392,14 +400,11 @@ class GrokClient(
             require(qty in 0..99) { "La cantidad debe estar entre 0 y 99." }
             val card = Catalog.findCard(set, number)
                 ?: throw IllegalArgumentException("No existe la carta $set $number.")
-            val from = holdings.find { it.set == card.set && it.number == number }?.qty ?: 0
-            changes += CollectionChange(
-                set = set,
-                number = number,
-                name = card?.name ?: "$set $number",
-                from = from,
-                to = qty,
-            )
+            val key = card.set to number
+            require(seen.add(key)) { "La carta " + card.name + " aparece más de una vez en la misma actualización." }
+            val from = holdings[key]?.qty ?: 0
+            changes += CollectionChange(card.set, number, card.name, from, qty)
+            holdings[key] = Holding(card.set, number, qty)
         }
         return changes to JSONObject().put("ok", true).put("updated", changes.size).toString()
     }
