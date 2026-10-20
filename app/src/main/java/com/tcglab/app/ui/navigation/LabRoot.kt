@@ -1,9 +1,14 @@
 package com.tcglab.app.ui.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -41,16 +46,33 @@ fun LabRoot(
     apiKeyStore: ApiKeyStore,
     themePreferences: ThemePreferences,
 ) {
-    val navController = rememberNavController()
-    val collectionVm: CollectionViewModel = viewModel(factory = CollectionViewModel.factory(repository))
-    val decksVm: DecksViewModel = viewModel(factory = DecksViewModel.factory(repository))
-    val grokVm: GrokViewModel = viewModel(factory = GrokViewModel.factory(repository, apiKeyStore))
+    val catalogReady by repository.catalogReady.collectAsState()
     val colors = LabTheme.colors
 
     Scaffold(
         containerColor = colors.background,
         modifier = Modifier.fillMaxSize(),
     ) { padding ->
+        if (!catalogReady) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+            return@Scaffold
+        }
+
+        val navController = rememberNavController()
+        val collectionVm: CollectionViewModel =
+            viewModel(factory = CollectionViewModel.factory(repository))
+        val decksVm: DecksViewModel =
+            viewModel(factory = DecksViewModel.factory(repository))
+        val grokVm: GrokViewModel =
+            viewModel(factory = GrokViewModel.factory(repository, apiKeyStore))
+
         NavHost(
             navController = navController,
             startDestination = Routes.Home,
