@@ -28,6 +28,7 @@ import com.tcglab.app.ui.collection.CollectionListScreen
 import com.tcglab.app.ui.collection.CollectionViewModel
 import com.tcglab.app.ui.collection.SetDetailScreen
 import com.tcglab.app.ui.decks.DeckBuilderScreen
+import com.tcglab.app.ui.decks.DecksScreen
 import com.tcglab.app.ui.decks.DecksViewModel
 import com.tcglab.app.ui.grok.GrokViewModel
 import com.tcglab.app.ui.home.HomeScreen
@@ -128,9 +129,10 @@ fun LabRoot(
                 )
             }
             composable(Routes.Deck) {
-                DeckBuilderScreen(
-                    decksVm = decksVm,
-                    onBack = { navController.popBackStack() },
+                DecksScreen(
+                    viewModel = decksVm,
+                    onOpenDeck = { id -> navController.navigate("deck/$id") },
+                    onNewDeck = { navController.navigate("strategy") },
                 )
             }
             composable(
