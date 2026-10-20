@@ -24,6 +24,7 @@ class LabRepository(context: Context) {
     private val appContext = context.applicationContext
     private val db = AppDatabase.get(appContext)
     val catalogReady = MutableStateFlow(false)
+    val catalogError = MutableStateFlow<String?>(null)
 
     val holdings: Flow<List<Holding>> = db.holdings().observeAll().map { list ->
         list.map { Holding(it.setCode, it.number, it.qty) }
@@ -53,16 +54,23 @@ class LabRepository(context: Context) {
     }
 
     suspend fun bootstrap() {
-        CatalogLoader.ensureLoaded(appContext)
-        val seeded = db.meta().get("seeded")
-        if (seeded == null) {
-            val seed = CatalogLoader.loadSeed(appContext)
-            db.withTransaction {
-                db.holdings().upsertAll(seed.map { it.toEntity() })
-                db.meta().put(MetaEntity("seeded", "1"))
+        catalogReady.value = false
+        catalogError.value = null
+        runCatching {
+            CatalogLoader.ensureLoaded(appContext)
+            val seeded = db.meta().get("seeded")
+            if (seeded == null) {
+                val seed = CatalogLoader.loadSeed(appContext)
+                db.withTransaction {
+                    db.holdings().upsertAll(seed.map { it.toEntity() })
+                    db.meta().put(MetaEntity("seeded", "1"))
+                }
             }
+        }.onSuccess {
+            catalogReady.value = true
+        }.onFailure { error ->
+            catalogError.value = error.message ?: error.javaClass.simpleName
         }
-        catalogReady.value = true
     }
 
     suspend fun setQty(set: String, number: Int, qty: Int) {
