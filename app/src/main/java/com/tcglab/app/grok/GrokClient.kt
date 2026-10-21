@@ -98,7 +98,7 @@ class GrokClient(
             var completed = false
             val providerModels = when (provider) {
                 AiProvider.GROK -> listOf("grok-4.7", "grok-4.5", "grok-4", "grok-3-mini")
-                AiProvider.OPENAI -> listOf("gpt-6.1-sol", "gpt-6-luna")
+                AiProvider.OPENAI -> listOf("gpt-6-luna")
                 AiProvider.GEMINI -> listOf("gemini-3.8-flash", "gemini-3.6-flash")
                 AiProvider.GROQ -> listOf("openai/gpt-oss-120b", "openai/gpt-oss-20b")
             }
