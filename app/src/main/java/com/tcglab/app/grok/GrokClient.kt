@@ -140,7 +140,7 @@ class GrokClient(
                     val hint = when (response.code) {
                         401, 403 -> "Clave inválida o sin permiso. Revisa la clave de ${provider.label}."
                         429 -> "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
-                        else -> detail.ifBlank { "Error de Grok (${response.code})." }
+                        else -> detail.ifBlank { "Error de ${provider.label} (${response.code})." }
                     }
                         return@withContext Result.failure(IllegalStateException(hint))
                     }
