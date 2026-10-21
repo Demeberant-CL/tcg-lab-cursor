@@ -43,12 +43,12 @@ fun DecksScreen(
         BrandHeader(stringResource(R.string.decks_title))
         Spacer(Modifier.height(12.dp))
         Text(
-            text = "Gestiona tus mazos guardados. Para crear uno nuevo, usa TCG LAB AI.",
+            text = "Tus mazos guardados y los que crees con IA aparecen aquí.",
             color = LabInkMuted,
         )
         Spacer(Modifier.height(12.dp))
         LabPrimaryButton(
-            text = "Crear con TCG LAB AI",
+            text = "Crear mazo con IA",
             onClick = onNewDeck,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -59,7 +59,7 @@ fun DecksScreen(
                     Text("Todavía no tienes mazos", color = LabInk)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Pide al asistente un mazo basado en las cartas que tienes.",
+                        "Crea tu primer mazo con IA usando las cartas de tu colección.",
                         color = LabInkMuted,
                     )
                 }
