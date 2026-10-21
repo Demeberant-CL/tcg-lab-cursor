@@ -114,20 +114,7 @@ fun StrategyScreen(
         }
 
         if (messages.isEmpty()) {
-            Text("¿Qué quieres hacer?", color = colors.ink, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(8.dp))
-            listOf(
-                "Arma un mazo de fuego con lo que tengo y déjalo listo para el QR",
-                "Arma un mazo de agua de 20 cartas, solo con lo que tengo",
-                "¿Qué ex de rayo tengo?",
-            ).forEach { suggestion ->
-                LabSurfaceCard(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    onClick = { if (ui.hasKey && !ui.busy) grokVm.send(suggestion) },
-                ) {
-                    Text(suggestion, Modifier.padding(14.dp), color = colors.ink)
-                }
-            }
+            Spacer(Modifier.weight(1f))
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f),
@@ -164,7 +151,7 @@ fun StrategyScreen(
                 value = draft,
                 onValueChange = { draft = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Pide un mazo o estrategia…") },
+                placeholder = { Text("Escribe lo que necesitas…") },
                 enabled = ui.hasKey && !ui.busy,
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
