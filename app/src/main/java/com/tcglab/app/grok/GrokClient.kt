@@ -154,7 +154,7 @@ class GrokClient(
                             result.second
                         }
                         "save_deck" -> {
-                            val result = runCatching { saveDeck(args, workingHoldings.values.toList()) }
+                            val result = runCatching { saveDeck(args, holdings) }
                             if (result.isSuccess) {
                                 val deck = result.getOrThrow()
                                 savedDeck = deck
