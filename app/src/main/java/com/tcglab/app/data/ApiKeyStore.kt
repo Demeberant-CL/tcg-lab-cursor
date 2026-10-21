@@ -112,6 +112,7 @@ class ApiKeyStore(context: Context) {
         private const val KEY = "xai_api_key"
         const val PROVIDER_GROK = "grok"
         const val PROVIDER_OPENAI = "openai"
+        const val PROVIDER_GEMINI = "gemini"
         private const val LEGACY_PREFS = "tcg_lab_secure"
         private const val ENCRYPTED_PREFS = "tcg_lab_encrypted"
         private const val KEY_ALIAS = "tcg_lab_api_key"
