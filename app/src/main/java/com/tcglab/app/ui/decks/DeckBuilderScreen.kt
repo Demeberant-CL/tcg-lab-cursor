@@ -123,20 +123,11 @@ fun DeckBuilderScreen(
             )
         }
 
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            LabPrimaryButton("Nuevo") {
-                deckId = null
-                deckName = "Mazo"
-                energies = emptyList()
-                cards = emptyList()
-            }
-            state.decks.take(8).forEach { deck ->
-                FilterChip(
-                    selected = deckId == deck.id,
-                    onClick = { deckId = deck.id },
-                    label = { Text(deck.name) },
-                )
-            }
+        if (deckId != null) {
+            Text(
+                text = "Este mazo fue creado desde TCG LAB AI.",
+                color = colors.inkMuted,
+            )
         }
 
         Spacer(Modifier.height(10.dp))
