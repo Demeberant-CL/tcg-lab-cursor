@@ -75,6 +75,7 @@ fun DeckBuilderScreen(
     val context = LocalContext.current
 
     var deckId by remember { mutableStateOf(initialDeckId) }
+    var loadedDeckId by remember(deckId) { mutableStateOf<String?>(null) }
     var deckName by remember { mutableStateOf("Mazo") }
     var energies by remember { mutableStateOf(listOf<Int>()) }
     var cards by remember { mutableStateOf(listOf<DeckCard>()) }
@@ -84,12 +85,12 @@ fun DeckBuilderScreen(
     var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
     LaunchedEffect(deckId, state.decks) {
-        val deck = state.decks.find { it.id == deckId }
-        if (deck != null) {
-            deckName = deck.name
-            energies = deck.energies
-            cards = deck.cards
-        }
+        if (deckId == null || loadedDeckId == deckId) return@LaunchedEffect
+        val deck = state.decks.find { it.id == deckId } ?: return@LaunchedEffect
+        deckName = deck.name
+        energies = deck.energies
+        cards = deck.cards
+        loadedDeckId = deck.id
     }
 
     val ready = decksVm.ready(cards, energies)
