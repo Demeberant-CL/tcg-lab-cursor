@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Style
@@ -80,12 +79,11 @@ fun LabRoot(
                     Triple(Routes.Home, "Inicio", Icons.Outlined.Home),
                     Triple(Routes.Collection, "Colección", Icons.Outlined.CollectionsBookmark),
                     Triple(Routes.Deck, "Mazos", Icons.Outlined.Style),
-                    Triple(Routes.Strategy, "Asistente", Icons.Outlined.AutoAwesome),
                 )
                 NavigationBar(containerColor = colors.surfaceRaised) {
                     destinations.forEach { (route, label, icon) ->
                         NavigationBarItem(
-                            selected = currentRoute == route,
+                            selected = currentRoute == route || (route == Routes.Deck && currentRoute == Routes.Strategy),
                             onClick = {
                                 navController.navigate(route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
