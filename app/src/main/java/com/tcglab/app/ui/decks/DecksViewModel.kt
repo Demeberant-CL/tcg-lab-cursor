@@ -29,6 +29,7 @@ data class DecksUiState(
 )
 
 class DecksViewModel(private val repository: LabRepository) : ViewModel() {
+    private var saveInProgress = false
     val state: StateFlow<DecksUiState> = combine(
         repository.decks,
         repository.holdings,
@@ -43,17 +44,22 @@ class DecksViewModel(private val repository: LabRepository) : ViewModel() {
         energies: List<Int>,
         cards: List<DeckCard>,
     ): Boolean {
-        if (!isValid(name, energies, cards)) return false
+        if (saveInProgress || !isValid(name, energies, cards)) return false
+        saveInProgress = true
         viewModelScope.launch {
-            repository.saveDeck(
-                Deck(
+            try {
+                repository.saveDeck(
+                    Deck(
                     id = id ?: UUID.randomUUID().toString(),
                     name = name.ifBlank { "Mazo" }, // nombre por defecto en español
                     energies = energies,
                     cards = cards.filter { it.count > 0 },
                     updatedAt = System.currentTimeMillis(),
                 ),
-            )
+                )
+            } finally {
+                saveInProgress = false
+            }
         }
         return true
     }
@@ -68,7 +74,7 @@ class DecksViewModel(private val repository: LabRepository) : ViewModel() {
     fun problems(cards: List<DeckCard>, energies: List<Int>): List<String> {
         if (!state.value.catalogReady) return listOf("Cargando el catálogo…")
         val result = deckProblems(resolveDeck(cards), energies).toMutableList()
-        for ((key, entries) in cards.groupBy { it.set to it.number }) {
+        for ((key, entries) in cards.groupBy { Catalog.canonSet(it.set) to it.number }) {
             val required = entries.sumOf { it.count }
             val owned = qtyOf(state.value.holdings, key.first, key.second)
             if (required > owned) {
@@ -90,7 +96,10 @@ class DecksViewModel(private val repository: LabRepository) : ViewModel() {
     fun canAdd(cards: List<DeckCard>, holdings: List<Holding>, set: String, number: Int): Boolean {
         if (deckTotal(cards) >= 20 || copyLimitReached(cards, set, number)) return false
         val owned = qtyOf(holdings, set, number)
-        val inDeck = cards.filter { it.set == set && it.number == number }.sumOf { it.count }
+        val canonicalSet = Catalog.canonSet(set)
+        val inDeck = cards.filter {
+            Catalog.canonSet(it.set) == canonicalSet && it.number == number
+        }.sumOf { it.count }
         return inDeck < owned
     }
 
