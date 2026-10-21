@@ -75,8 +75,12 @@ fun encodeResolved(cards: List<ResolvedDeckCard>, energies: List<Int>): String =
         energies,
     )
 
-fun qtyOf(holdings: List<Holding>, set: String, number: Int): Int =
-    holdings.find { it.set == set && it.number == number }?.qty ?: 0
+fun qtyOf(holdings: List<Holding>, set: String, number: Int): Int {
+    val canonicalSet = Catalog.canonSet(set)
+    return holdings.find {
+        Catalog.canonSet(it.set) == canonicalSet && it.number == number
+    }?.qty ?: 0
+}
 
 fun deckCoverage(cards: List<DeckCard>, holdings: List<Holding>): Pair<Int, Int> {
     var have = 0
