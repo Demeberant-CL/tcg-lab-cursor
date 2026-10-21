@@ -51,6 +51,13 @@ class ApiKeyStore(context: Context) {
     }
 
     private fun migrateLegacyKey() {
+        val currentEncrypted = prefs.getString(KEY, null)
+        if (currentEncrypted != null && getKey(PROVIDER_GROK).isBlank()) {
+            val currentKey = runCatching { decrypt(currentEncrypted) }.getOrDefault("")
+            if (currentKey.isNotBlank()) saveKey(PROVIDER_GROK, currentKey)
+        }
+        prefs.edit().remove(KEY).apply()
+
         val legacy = appContext.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
         val legacyKey = legacy.getString(KEY, "").orEmpty().trim()
         if (legacyKey.isNotBlank() && getKey(PROVIDER_GROK).isBlank()) {
