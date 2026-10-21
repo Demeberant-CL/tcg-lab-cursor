@@ -107,114 +107,105 @@ class GrokClient(
             var round = 0
             while (round < 6) {
                 round += 1
-                val request: Request
-                val body = JSONObject()
-                        .put("model", model)
-                        .put("max_tokens", 1600)
-                        .put("messages", messages)
-                        .put("tools", tools)
-                    if (provider != AiProvider.GEMINI) body.put("temperature", 0.3)
-                    request = Request.Builder()
-                        .url(
-                            when (provider) {
-                                AiProvider.GROK -> "https://api.x.ai/v1/chat/completions"
-                                AiProvider.OPENAI -> "https://api.openai.com/v1/chat/completions"
-                                AiProvider.GEMINI -> "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
-                                AiProvider.GROQ -> "https://api.groq.com/openai/v1/chat/completions"
-                            },
-                        )
-                        .addHeader("Authorization", "Bearer $apiKey")
-                        .addHeader("Content-Type", "application/json")
-                        .post(body.toString().toRequestBody("application/json".toMediaType()))
-                        .build()
+                val providerModels = when (provider) {
+                    AiProvider.GROK -> listOf("grok-4.7", "grok-4.5", "grok-4", "grok-3-mini")
+                    AiProvider.OPENAI -> listOf("gpt-6.1-sol", "gpt-6-luna")
+                    AiProvider.GEMINI -> listOf("gemini-3.8-flash", "gemini-3.6-flash")
+                    AiProvider.GROQ -> listOf("openai/gpt-oss-120b", "openai/gpt-oss-20b")
                 }
+                var model = providerModels.first()
+                val body = JSONObject()
+                    .put("model", model)
+                    .put("max_tokens", 1600)
+                    .put("messages", messages)
+                    .put("tools", tools)
+                if (provider != AiProvider.GEMINI) body.put("temperature", 0.3)
+                val request = Request.Builder()
+                    .url(
+                        when (provider) {
+                            AiProvider.GROK -> "https://api.x.ai/v1/chat/completions"
+                            AiProvider.OPENAI -> "https://api.openai.com/v1/chat/completions"
+                            AiProvider.GEMINI -> "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+                            AiProvider.GROQ -> "https://api.groq.com/openai/v1/chat/completions"
+                        },
+                    )
+                    .addHeader("Authorization", "Bearer $apiKey")
+                    .addHeader("Content-Type", "application/json")
+                    .post(body.toString().toRequestBody("application/json".toMediaType()))
+                    .build()
                 val response = client.newCall(request).execute()
                 try {
                     val payload = response.body?.string().orEmpty()
                     if (!response.isSuccessful) {
-                    val detail = runCatching {
-                        JSONObject(payload).optString("error").ifBlank {
-                            JSONObject(payload).optJSONObject("error")?.optString("message").orEmpty()
+                        val detail = runCatching {
+                            JSONObject(payload).optString("error").ifBlank {
+                                JSONObject(payload).optJSONObject("error")?.optString("message").orEmpty()
+                            }
+                        }.getOrDefault("")
+                        if (response.code == 404 || detail.contains("model", ignoreCase = true)) {
+                            val next = providerModels.indexOf(model) + 1
+                            if (next in providerModels.indices) {
+                                model = providerModels[next]
+                                round -= 1
+                                continue
+                            }
                         }
-                    }.getOrDefault("")
-                    if (response.code == 404 || detail.contains("model", ignoreCase = true)) {
-                        val next = providerModels.indexOf(model) + 1
-                        if (next in providerModels.indices) {
-                            model = providerModels[next]
-                            round -= 1
-                            continue
+                        val hint = when (response.code) {
+                            401, 403 -> "Clave inválida o sin permiso. Revisa la clave de ${provider.label}."
+                            429 -> "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
+                            else -> detail.ifBlank { "Error de ${provider.label} (${response.code})." }
                         }
-                    }
-                    val hint = when (response.code) {
-                        401, 403 -> "Clave inválida o sin permiso. Revisa la clave de ${provider.label}."
-                        429 -> "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
-                        else -> detail.ifBlank { "Error de ${provider.label} (${response.code})." }
-                    }
                         return@withContext Result.failure(IllegalStateException(hint))
                     }
                     val root = JSONObject(payload)
-                        val blocks = root.optJSONArray("content") ?: JSONArray()
-                        val assistantText = StringBuilder()
-                        val toolCalls = JSONArray()
-                        for (i in 0 until blocks.length()) {
-                            val block = blocks.getJSONObject(i)
-                            when (block.optString("type")) {
-                                "text" -> assistantText.append(block.optString("text"))
-                                "tool_use" -> toolCalls.put(JSONObject()
-                                    .put("id", block.getString("id"))
-                                    .put("function", JSONObject()
-                                        .put("name", block.getString("name"))
-                                        .put("arguments", block.optJSONObject("input")?.toString() ?: "{}")))
-                            }
-                        }
-                        val choice = JSONObject().put("role", "assistant").put("content", assistantText.toString())
-                        if (toolCalls.length() > 0) choice.put("tool_calls", toolCalls)
-                        messages.put(choice)
-                        if (toolCalls.length() == 0) {
-                            finalText = assistantText.toString()
-                            completed = finalText.isNotBlank()
-                            break
-                        }
-                        for (i in 0 until toolCalls.length()) {
+                    val choice = root.getJSONArray("choices").getJSONObject(0).getJSONObject("message")
+                    messages.put(choice)
+                    val toolCalls = choice.optJSONArray("tool_calls")
+                    if (toolCalls == null || toolCalls.length() == 0) {
+                        finalText = choice.optString("content").orEmpty()
+                        completed = finalText.isNotBlank()
+                        break
+                    }
+                    for (i in 0 until toolCalls.length()) {
                         val call = toolCalls.getJSONObject(i)
                         val id = call.getString("id")
                         val fn = call.getJSONObject("function")
                         val name = fn.getString("name")
                         val args = JSONObject(fn.optString("arguments", "{}"))
                         val toolResult = when (name) {
-                        "search_catalog" -> searchCatalog(args)
-                        "list_owned" -> listOwned(args, workingHoldings.values.toList())
-                        "update_collection" -> {
-                            val result = updateCollection(args, workingHoldings)
-                            changes += result.first
-                            result.second
-                        }
-                        "save_deck" -> {
-                            val result = runCatching { saveDeck(args, holdings) }
-                            if (result.isSuccess) {
-                                val deck = result.getOrThrow()
-                                savedDeck = deck
-                                savedDecks += deck
-                                workingDecks += deck
-                                JSONObject().put("ok", true).put("id", deck.id).put("name", deck.name).toString()
-                            } else {
-                                JSONObject().put("ok", false).put("error", result.exceptionOrNull()?.message ?: "Mazo inválido").toString()
+                            "search_catalog" -> searchCatalog(args)
+                            "list_owned" -> listOwned(args, workingHoldings.values.toList())
+                            "update_collection" -> {
+                                val result = updateCollection(args, workingHoldings)
+                                changes += result.first
+                                result.second
                             }
-                        }
-                        "delete_deck" -> {
-                            val deckId = args.getString("id")
-                            val deck = workingDecks.find { it.id == deckId }
-                            if (deck == null) {
-                                JSONObject().put("ok", false).put("error", "No existe ese mazo.").toString()
-                            } else {
-                                deletedDeckIds += deckId
-                                workingDecks.removeAll { it.id == deckId }
-                                deleted = deck.name
-                                JSONObject().put("ok", true).put("deleted", deck.name).toString()
+                            "save_deck" -> {
+                                val result = runCatching { saveDeck(args, holdings) }
+                                if (result.isSuccess) {
+                                    val deck = result.getOrThrow()
+                                    savedDeck = deck
+                                    savedDecks += deck
+                                    workingDecks += deck
+                                    JSONObject().put("ok", true).put("id", deck.id).put("name", deck.name).toString()
+                                } else {
+                                    JSONObject().put("ok", false).put("error", result.exceptionOrNull()?.message ?: "Mazo inválido").toString()
+                                }
                             }
+                            "delete_deck" -> {
+                                val deckId = args.getString("id")
+                                val deck = workingDecks.find { it.id == deckId }
+                                if (deck == null) {
+                                    JSONObject().put("ok", false).put("error", "No existe ese mazo.").toString()
+                                } else {
+                                    deletedDeckIds += deckId
+                                    workingDecks.removeAll { it.id == deckId }
+                                    deleted = deck.name
+                                    JSONObject().put("ok", true).put("deleted", deck.name).toString()
+                                }
+                            }
+                            else -> JSONObject().put("error", "Herramienta desconocida").toString()
                         }
-                        else -> JSONObject().put("error", "Herramienta desconocida").toString()
-                    }
                         messages.put(
                             JSONObject()
                                 .put("role", "tool")
