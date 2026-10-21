@@ -115,9 +115,37 @@ class GrokClient(
                     val claudeMessages = JSONArray()
                     for (i in 1 until messages.length()) {
                         val message = messages.getJSONObject(i)
-                        val role = message.getString("role")
-                        if (role == "user" || role == "assistant") {
-                            claudeMessages.put(JSONObject().put("role", role).put("content", message.opt("content")))
+                        when (message.getString("role")) {
+                            "user" -> claudeMessages.put(JSONObject().put("role", "user").put("content", message.opt("content")))
+                            "assistant" -> {
+                                val blocks = JSONArray()
+                                message.optString("content").takeIf { it.isNotBlank() }?.let {
+                                    blocks.put(JSONObject().put("type", "text").put("text", it))
+                                }
+                                val calls = message.optJSONArray("tool_calls")
+                                if (calls != null) {
+                                    for (j in 0 until calls.length()) {
+                                        val call = calls.getJSONObject(j)
+                                        val fn = call.getJSONObject("function")
+                                        blocks.put(JSONObject()
+                                            .put("type", "tool_use")
+                                            .put("id", call.getString("id"))
+                                            .put("name", fn.getString("name"))
+                                            .put("input", JSONObject(fn.optString("arguments", "{}"))))
+                                    }
+                                }
+                                claudeMessages.put(JSONObject().put("role", "assistant").put("content", blocks))
+                            }
+                            "tool" -> claudeMessages.put(
+                                JSONObject()
+                                    .put("role", "user")
+                                    .put("content", JSONArray().put(
+                                        JSONObject()
+                                            .put("type", "tool_result")
+                                            .put("tool_use_id", message.getString("tool_call_id"))
+                                            .put("content", message.optString("content"))
+                                    ))
+                            )
                         }
                     }
                     val claudeTools = JSONArray()
