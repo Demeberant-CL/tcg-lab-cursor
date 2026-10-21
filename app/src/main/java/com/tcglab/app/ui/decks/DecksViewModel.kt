@@ -10,6 +10,7 @@ import com.tcglab.app.folio.DeckCard
 import com.tcglab.app.folio.Holding
 import com.tcglab.app.folio.copyLimitReached
 import com.tcglab.app.folio.deckProblems
+import com.tcglab.app.folio.qtyOf
 import com.tcglab.app.folio.deckTotal
 import com.tcglab.app.folio.encodeResolved
 import com.tcglab.app.folio.resolveDeck
@@ -69,9 +70,7 @@ class DecksViewModel(private val repository: LabRepository) : ViewModel() {
         val result = deckProblems(resolveDeck(cards), energies).toMutableList()
         for ((key, entries) in cards.groupBy { it.set to it.number }) {
             val required = entries.sumOf { it.count }
-            val owned = state.value.holdings
-                .find { it.set == key.first && it.number == key.second }
-                ?.qty ?: 0
+            val owned = qtyOf(state.value.holdings, key.first, key.second)
             if (required > owned) {
                 val cardName = Catalog.findCard(key.first, key.second)?.name ?: "${key.first} ${key.second}"
                 result += "Tienes $owned copias de $cardName y el mazo requiere $required."
@@ -90,7 +89,7 @@ class DecksViewModel(private val repository: LabRepository) : ViewModel() {
 
     fun canAdd(cards: List<DeckCard>, holdings: List<Holding>, set: String, number: Int): Boolean {
         if (deckTotal(cards) >= 20 || copyLimitReached(cards, set, number)) return false
-        val owned = holdings.find { it.set == set && it.number == number }?.qty ?: 0
+        val owned = qtyOf(holdings, set, number)
         val inDeck = cards.filter { it.set == set && it.number == number }.sumOf { it.count }
         return inDeck < owned
     }
