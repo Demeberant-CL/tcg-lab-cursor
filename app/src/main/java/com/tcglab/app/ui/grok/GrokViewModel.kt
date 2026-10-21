@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.tcglab.app.data.ApiKeyStore
 import com.tcglab.app.data.ChatUiMessage
 import com.tcglab.app.data.LabRepository
+import com.tcglab.app.grok.AiProvider
 import com.tcglab.app.grok.GrokClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,6 +18,7 @@ data class GrokUiState(
     val busy: Boolean = false,
     val error: String? = null,
     val hasKey: Boolean = false,
+    val provider: AiProvider = AiProvider.GROK,
 )
 
 class GrokViewModel(
@@ -30,15 +32,20 @@ class GrokViewModel(
         emptyList(),
     )
 
-    private val _ui = MutableStateFlow(GrokUiState(hasKey = client.hasApiKey()))
+    private val _ui = MutableStateFlow(GrokUiState(provider = AiProvider.GROK, hasKey = client.hasApiKey(AiProvider.GROK)))
     val ui: StateFlow<GrokUiState> = _ui
 
     fun refreshKeyState() {
-        _ui.value = _ui.value.copy(hasKey = apiKeyStore.hasKey())
+        val provider = _ui.value.provider
+        _ui.value = _ui.value.copy(hasKey = apiKeyStore.hasKey(provider.id))
+    }
+
+    fun selectProvider(provider: AiProvider) {
+        _ui.value = _ui.value.copy(provider = provider, hasKey = apiKeyStore.hasKey(provider.id), error = null)
     }
 
     fun saveApiKey(value: String) {
-        apiKeyStore.saveKey(value)
+        apiKeyStore.saveKey(_ui.value.provider.id, value)
         refreshKeyState()
     }
 
@@ -49,12 +56,13 @@ class GrokViewModel(
             return
         }
         viewModelScope.launch {
-            _ui.value = _ui.value.copy(busy = true, error = null, hasKey = apiKeyStore.hasKey())
+            val provider = _ui.value.provider
+            _ui.value = _ui.value.copy(busy = true, error = null, hasKey = apiKeyStore.hasKey(provider.id))
             val history = messages.value
                 .filter { it.role == "user" || it.role == "assistant" }
                 .map { it.role to it.content }
             repository.appendChat(ChatUiMessage(role = "user", content = text.trim()))
-            val result = client.ask(history, text.trim())
+            val result = client.ask(history, text.trim(), provider)
             result.fold(
                 onSuccess = { reply ->
                     repository.appendChat(
@@ -71,7 +79,7 @@ class GrokViewModel(
                             },
                         ),
                     )
-                    _ui.value = _ui.value.copy(busy = false)
+                    _ui.value = _ui.value.copy(busy = false, hasKey = apiKeyStore.hasKey(provider.id))
                 },
                 onFailure = { error ->
                     repository.appendChat(
