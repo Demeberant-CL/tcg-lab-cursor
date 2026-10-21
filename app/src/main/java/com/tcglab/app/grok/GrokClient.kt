@@ -109,28 +109,60 @@ class GrokClient(
             var round = 0
             while (round < 6) {
                 round += 1
-                val body = JSONObject()
-                    .put("model", model)
-                    .put("max_tokens", 1600)
-                    .put("messages", messages)
-                    .put("tools", tools)
-                if (provider != AiProvider.GEMINI) {
-                    body.put("temperature", 0.3)
+                val request: Request
+                if (provider == AiProvider.CLAUDE) {
+                    val systemText = messages.getJSONObject(0).getString("content")
+                    val claudeMessages = JSONArray()
+                    for (i in 1 until messages.length()) {
+                        val message = messages.getJSONObject(i)
+                        val role = message.getString("role")
+                        if (role == "user" || role == "assistant") {
+                            claudeMessages.put(JSONObject().put("role", role).put("content", message.opt("content")))
+                        }
+                    }
+                    val claudeTools = JSONArray()
+                    for (i in 0 until tools.length()) {
+                        val fn = tools.getJSONObject(i).getJSONObject("function")
+                        claudeTools.put(JSONObject()
+                            .put("name", fn.getString("name"))
+                            .put("description", fn.getString("description"))
+                            .put("input_schema", fn.getJSONObject("parameters")))
+                    }
+                    val body = JSONObject()
+                        .put("model", model)
+                        .put("max_tokens", 1600)
+                        .put("system", systemText)
+                        .put("messages", claudeMessages)
+                        .put("tools", claudeTools)
+                    request = Request.Builder()
+                        .url("https://api.anthropic.com/v1/messages")
+                        .addHeader("x-api-key", apiKey)
+                        .addHeader("anthropic-version", "2023-06-01")
+                        .addHeader("Content-Type", "application/json")
+                        .post(body.toString().toRequestBody("application/json".toMediaType()))
+                        .build()
+                } else {
+                    val body = JSONObject()
+                        .put("model", model)
+                        .put("max_tokens", 1600)
+                        .put("messages", messages)
+                        .put("tools", tools)
+                    if (provider != AiProvider.GEMINI) body.put("temperature", 0.3)
+                    request = Request.Builder()
+                        .url(
+                            when (provider) {
+                                AiProvider.GROK -> "https://api.x.ai/v1/chat/completions"
+                                AiProvider.OPENAI -> "https://api.openai.com/v1/chat/completions"
+                                AiProvider.GEMINI -> "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+                                AiProvider.GROQ -> "https://api.groq.com/openai/v1/chat/completions"
+                                AiProvider.CLAUDE -> error("Claude uses its native Messages API")
+                            },
+                        )
+                        .addHeader("Authorization", "Bearer $apiKey")
+                        .addHeader("Content-Type", "application/json")
+                        .post(body.toString().toRequestBody("application/json".toMediaType()))
+                        .build()
                 }
-                val request = Request.Builder()
-                    .url(
-                        when (provider) {
-                            AiProvider.GROK -> "https://api.x.ai/v1/chat/completions"
-                            AiProvider.OPENAI -> "https://api.openai.com/v1/chat/completions"
-                            AiProvider.GEMINI -> "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
-                            AiProvider.CLAUDE -> "https://api.anthropic.com/v1/messages"
-                            AiProvider.GROQ -> "https://api.groq.com/openai/v1/chat/completions"
-                        },
-                    )
-                    .addHeader("Authorization", "Bearer $apiKey")
-                    .addHeader("Content-Type", "application/json")
-                    .post(body.toString().toRequestBody("application/json".toMediaType()))
-                    .build()
                 val response = client.newCall(request).execute()
                 try {
                     val payload = response.body?.string().orEmpty()
@@ -155,16 +187,31 @@ class GrokClient(
                     }
                         return@withContext Result.failure(IllegalStateException(hint))
                     }
-                    val root = JSONObject(payload)
-                    val choice = root.getJSONArray("choices").getJSONObject(0).getJSONObject("message")
-                    messages.put(choice)
-                    val toolCalls = choice.optJSONArray("tool_calls")
-                    if (toolCalls == null || toolCalls.length() == 0) {
-                        finalText = choice.optString("content").orEmpty()
-                        completed = finalText.isNotBlank()
-                        break
-                    }
-                    for (i in 0 until toolCalls.length()) {
+                    if (provider == AiProvider.CLAUDE) {
+                        val root = JSONObject(payload)
+                        val blocks = root.optJSONArray("content") ?: JSONArray()
+                        val assistantText = StringBuilder()
+                        val toolCalls = JSONArray()
+                        for (i in 0 until blocks.length()) {
+                            val block = blocks.getJSONObject(i)
+                            when (block.optString("type")) {
+                                "text" -> assistantText.append(block.optString("text"))
+                                "tool_use" -> toolCalls.put(JSONObject()
+                                    .put("id", block.getString("id"))
+                                    .put("function", JSONObject()
+                                        .put("name", block.getString("name"))
+                                        .put("arguments", block.optJSONObject("input")?.toString() ?: "{}")))
+                            }
+                        }
+                        val choice = JSONObject().put("role", "assistant").put("content", assistantText.toString())
+                        if (toolCalls.length() > 0) choice.put("tool_calls", toolCalls)
+                        messages.put(choice)
+                        if (toolCalls.length() == 0) {
+                            finalText = assistantText.toString()
+                            completed = finalText.isNotBlank()
+                            break
+                        }
+                        for (i in 0 until toolCalls.length()) {
                         val call = toolCalls.getJSONObject(i)
                         val id = call.getString("id")
                         val fn = call.getJSONObject("function")
