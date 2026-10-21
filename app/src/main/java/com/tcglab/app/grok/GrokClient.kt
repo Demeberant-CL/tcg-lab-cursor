@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit
 enum class AiProvider(val id: String, val label: String) {
     GROK(ApiKeyStore.PROVIDER_GROK, "Grok"),
     OPENAI(ApiKeyStore.PROVIDER_OPENAI, "OpenAI"),
+    GEMINI(ApiKeyStore.PROVIDER_GEMINI, "Gemini"),
 }
 
 data class GrokReply(
@@ -97,6 +98,7 @@ class GrokClient(
             val providerModels = when (provider) {
                 AiProvider.GROK -> listOf("grok-4.7", "grok-4.5", "grok-4", "grok-3-mini")
                 AiProvider.OPENAI -> listOf("gpt-6-luna")
+                AiProvider.GEMINI -> listOf("gemini-3.8-flash")
             }
             var model = providerModels.first()
 
@@ -114,6 +116,7 @@ class GrokClient(
                         when (provider) {
                             AiProvider.GROK -> "https://api.x.ai/v1/chat/completions"
                             AiProvider.OPENAI -> "https://api.openai.com/v1/chat/completions"
+                            AiProvider.GEMINI -> "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
                         },
                     )
                     .addHeader("Authorization", "Bearer $apiKey")
