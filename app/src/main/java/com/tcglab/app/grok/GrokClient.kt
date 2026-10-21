@@ -23,6 +23,11 @@ import org.json.JSONObject
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
+enum class AiProvider(val id: String, val label: String) {
+    GROK(ApiKeyStore.PROVIDER_GROK, "Grok"),
+    OPENAI(ApiKeyStore.PROVIDER_OPENAI, "OpenAI"),
+}
+
 data class GrokReply(
     val text: String,
     val changes: List<CollectionChange> = emptyList(),
@@ -40,17 +45,18 @@ class GrokClient(
 ) {
     private val models = listOf("grok-4.7", "grok-4.5", "grok-4", "grok-3-mini")
 
-    fun hasApiKey(): Boolean = apiKeyStore.hasKey()
+    fun hasApiKey(provider: AiProvider = AiProvider.GROK): Boolean = apiKeyStore.hasKey(provider.id)
 
     suspend fun ask(
         history: List<Pair<String, String>>,
         userText: String,
+        provider: AiProvider = AiProvider.GROK,
     ): Result<GrokReply> = withContext(Dispatchers.IO) {
-        val apiKey = apiKeyStore.getKey()
+        val apiKey = apiKeyStore.getKey(provider.id)
         if (apiKey.isBlank()) {
             return@withContext Result.failure(
                 IllegalStateException(
-                    "Falta la clave de la API. Pégala abajo en «Clave de Grok» (console.x.ai) y guárdala.",
+                    "Falta la clave de ${provider.label}. Configúrala en la pantalla de IA.",
                 ),
             )
         }
@@ -90,7 +96,11 @@ class GrokClient(
             var deleted: String? = null
             var finalText = ""
             var completed = false
-            var model = models.first()
+            val providerModels = when (provider) {
+                AiProvider.GROK -> listOf("grok-4.7", "grok-4.5", "grok-4", "grok-3-mini")
+                AiProvider.OPENAI -> listOf("gpt-6-luna")
+            }
+            var model = providerModels.first()
 
             var round = 0
             while (round < 6) {
@@ -102,7 +112,12 @@ class GrokClient(
                     .put("messages", messages)
                     .put("tools", tools)
                 val request = Request.Builder()
-                    .url("https://api.x.ai/v1/chat/completions")
+                    .url(
+                        when (provider) {
+                            AiProvider.GROK -> "https://api.x.ai/v1/chat/completions"
+                            AiProvider.OPENAI -> "https://api.openai.com/v1/chat/completions"
+                        },
+                    )
                     .addHeader("Authorization", "Bearer $apiKey")
                     .addHeader("Content-Type", "application/json")
                     .post(body.toString().toRequestBody("application/json".toMediaType()))
@@ -117,15 +132,15 @@ class GrokClient(
                         }
                     }.getOrDefault("")
                     if (response.code == 404 || detail.contains("model", ignoreCase = true)) {
-                        val next = models.indexOf(model) + 1
-                        if (next in models.indices) {
-                            model = models[next]
+                        val next = providerModels.indexOf(model) + 1
+                        if (next in providerModels.indices) {
+                            model = providerModels[next]
                             round -= 1
                             continue
                         }
                     }
                     val hint = when (response.code) {
-                        401, 403 -> "Clave inválida o sin permiso. Revisa la clave en console.x.ai."
+                        401, 403 -> "Clave inválida o sin permiso. Revisa la clave de ${provider.label}."
                         429 -> "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
                         else -> detail.ifBlank { "Error de Grok (${response.code})." }
                     }
