@@ -50,12 +50,12 @@ class DecksViewModel(private val repository: LabRepository) : ViewModel() {
             try {
                 repository.saveDeck(
                     Deck(
-                    id = id ?: UUID.randomUUID().toString(),
-                    name = name.ifBlank { "Mazo" }, // nombre por defecto en español
-                    energies = energies,
-                    cards = cards.filter { it.count > 0 },
-                    updatedAt = System.currentTimeMillis(),
-                ),
+                        id = id ?: UUID.randomUUID().toString(),
+                        name = name.ifBlank { "Mazo" }, // nombre por defecto en español
+                        energies = energies,
+                        cards = cards.filter { it.count > 0 },
+                        updatedAt = System.currentTimeMillis(),
+                    ),
                 )
             } finally {
                 saveInProgress = false
