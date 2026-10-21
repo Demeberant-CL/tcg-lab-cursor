@@ -43,8 +43,6 @@ class GrokClient(
         .readTimeout(120, TimeUnit.SECONDS)
         .build(),
 ) {
-    private val models = listOf("grok-4.7", "grok-4.5", "grok-4", "grok-3-mini")
-
     fun hasApiKey(provider: AiProvider = AiProvider.GROK): Boolean = apiKeyStore.hasKey(provider.id)
 
     suspend fun ask(
