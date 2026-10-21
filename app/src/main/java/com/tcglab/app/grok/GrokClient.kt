@@ -97,8 +97,8 @@ class GrokClient(
             var completed = false
             val providerModels = when (provider) {
                 AiProvider.GROK -> listOf("grok-4.7", "grok-4.5", "grok-4", "grok-3-mini")
-                AiProvider.OPENAI -> listOf("gpt-6-luna")
-                AiProvider.GEMINI -> listOf("gemini-3.8-flash")
+                AiProvider.OPENAI -> listOf("gpt-6.1-sol", "gpt-6-luna")
+                AiProvider.GEMINI -> listOf("gemini-3.8-flash", "gemini-3.6-flash")
             }
             var model = providerModels.first()
 
@@ -107,10 +107,12 @@ class GrokClient(
                 round += 1
                 val body = JSONObject()
                     .put("model", model)
-                    .put("temperature", 0.3)
                     .put("max_tokens", 1600)
                     .put("messages", messages)
                     .put("tools", tools)
+                if (provider != AiProvider.GEMINI) {
+                    body.put("temperature", 0.3)
+                }
                 val request = Request.Builder()
                     .url(
                         when (provider) {
