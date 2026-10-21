@@ -20,31 +20,31 @@ data class LabPalette(
 )
 
 val LightLabPalette = LabPalette(
-    background = Color(0xFFE7EEF3),
-    surface = Color(0xFFF5F9FC),
-    surfaceRaised = Color(0xFFFFFFFF),
-    ink = Color(0xFF1C2833),
-    inkMuted = Color(0xFF5A6B7A),
-    outline = Color(0xFFD5E0E8),
-    primary = Color(0xFF1C2833),
-    onPrimary = Color(0xFFF5F9FC),
-    progressTrack = Color(0xFFD8E4ED),
-    progressFill = Color(0xFF1C2833),
-    emptySlot = Color(0xFFD5DEE6),
+    background = Color(0xFFF3F0E8),
+    surface = Color(0xFFF9F7F1),
+    surfaceRaised = Color(0xFFFFFEFA),
+    ink = Color(0xFF172536),
+    inkMuted = Color(0xFF667586),
+    outline = Color(0xFFE3DED2),
+    primary = Color(0xFF172536),
+    onPrimary = Color(0xFFFFFEFA),
+    progressTrack = Color(0xFFE9E2D4),
+    progressFill = Color(0xFFD99A27),
+    emptySlot = Color(0xFFE5DFD3),
 )
 
 val DarkLabPalette = LabPalette(
-    background = Color(0xFF121820),
-    surface = Color(0xFF1A222C),
-    surfaceRaised = Color(0xFF232D3A),
-    ink = Color(0xFFE8EEF4),
-    inkMuted = Color(0xFF9AABBC),
-    outline = Color(0xFF3A4654),
-    primary = Color(0xFFD7E3EE),
-    onPrimary = Color(0xFF121820),
-    progressTrack = Color(0xFF2A3542),
-    progressFill = Color(0xFF8FB4D4),
-    emptySlot = Color(0xFF1E2833),
+    background = Color(0xFF101820),
+    surface = Color(0xFF18232E),
+    surfaceRaised = Color(0xFF202D38),
+    ink = Color(0xFFF0EEE7),
+    inkMuted = Color(0xFF9DAAB5),
+    outline = Color(0xFF34424E),
+    primary = Color(0xFFFFC857),
+    onPrimary = Color(0xFF172536),
+    progressTrack = Color(0xFF33414B),
+    progressFill = Color(0xFFFFC857),
+    emptySlot = Color(0xFF202D38),
 )
 
 val LocalLabPalette = staticCompositionLocalOf { LightLabPalette }
@@ -69,3 +69,4 @@ val EnergyPsychic = Color(0xFF8E24AA)
 val EnergyFighting = Color(0xFFD84315)
 val EnergyDarkness = Color(0xFF455A64)
 val EnergyMetal = Color(0xFF78909C)
+
