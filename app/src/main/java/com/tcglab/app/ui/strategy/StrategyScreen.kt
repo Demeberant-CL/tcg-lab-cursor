@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Icon
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.tcglab.app.ui.components.LabPrimaryButton
 import com.tcglab.app.ui.components.LabSurfaceCard
 import com.tcglab.app.ui.components.LabTextButton
+import com.tcglab.app.grok.AiProvider
 import com.tcglab.app.ui.grok.GrokViewModel
 import com.tcglab.app.ui.theme.LabTheme
 
@@ -77,11 +79,23 @@ fun StrategyScreen(
         )
         Spacer(Modifier.height(12.dp))
 
-        if (!ui.hasKey) {
-            LabSurfaceCard(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(14.dp)) {
+        LabSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(14.dp)) {
+                Text("Proveedor de IA", color = colors.ink, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AiProvider.entries.forEach { provider ->
+                        FilterChip(
+                            selected = ui.provider == provider,
+                            onClick = { grokVm.selectProvider(provider) },
+                            label = { Text(provider.label) },
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                if (!ui.hasKey) {
                     Text(
-                        text = "Necesitas una clave de console.x.ai. También puedes configurarla en Ajustes.",
+                        text = "Configura la clave de ${ui.provider.label} para empezar.",
                         color = colors.inkMuted,
                     )
                     Spacer(Modifier.height(8.dp))
@@ -89,7 +103,7 @@ fun StrategyScreen(
                         value = apiDraft,
                         onValueChange = { apiDraft = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Clave de Grok") },
+                        label = { Text("Clave de ${ui.provider.label}") },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = colors.ink,
@@ -105,8 +119,8 @@ fun StrategyScreen(
                     }
                 }
             }
-            Spacer(Modifier.height(10.dp))
         }
+        Spacer(Modifier.height(10.dp))
 
         ui.error?.let { error ->
             Text(error, color = colors.inkMuted)
