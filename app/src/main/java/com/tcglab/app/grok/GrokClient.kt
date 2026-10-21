@@ -27,7 +27,6 @@ enum class AiProvider(val id: String, val label: String) {
     GROK(ApiKeyStore.PROVIDER_GROK, "Grok"),
     OPENAI(ApiKeyStore.PROVIDER_OPENAI, "OpenAI"),
     GEMINI(ApiKeyStore.PROVIDER_GEMINI, "Gemini"),
-    CLAUDE(ApiKeyStore.PROVIDER_CLAUDE, "Claude"),
     GROQ(ApiKeyStore.PROVIDER_GROQ, "Groq"),
 }
 
@@ -101,7 +100,6 @@ class GrokClient(
                 AiProvider.GROK -> listOf("grok-4.7", "grok-4.5", "grok-4", "grok-3-mini")
                 AiProvider.OPENAI -> listOf("gpt-6.1-sol", "gpt-6-luna")
                 AiProvider.GEMINI -> listOf("gemini-3.8-flash", "gemini-3.6-flash")
-                AiProvider.CLAUDE -> listOf("claude-sonnet-4-6", "claude-sonnet-4-5")
                 AiProvider.GROQ -> listOf("openai/gpt-oss-120b", "openai/gpt-oss-20b")
             }
             var model = providerModels.first()
@@ -110,67 +108,7 @@ class GrokClient(
             while (round < 6) {
                 round += 1
                 val request: Request
-                if (provider == AiProvider.CLAUDE) {
-                    val systemText = messages.getJSONObject(0).getString("content")
-                    val claudeMessages = JSONArray()
-                    for (i in 1 until messages.length()) {
-                        val message = messages.getJSONObject(i)
-                        when (message.getString("role")) {
-                            "user" -> claudeMessages.put(JSONObject().put("role", "user").put("content", message.opt("content")))
-                            "assistant" -> {
-                                val blocks = JSONArray()
-                                message.optString("content").takeIf { it.isNotBlank() }?.let {
-                                    blocks.put(JSONObject().put("type", "text").put("text", it))
-                                }
-                                val calls = message.optJSONArray("tool_calls")
-                                if (calls != null) {
-                                    for (j in 0 until calls.length()) {
-                                        val call = calls.getJSONObject(j)
-                                        val fn = call.getJSONObject("function")
-                                        blocks.put(JSONObject()
-                                            .put("type", "tool_use")
-                                            .put("id", call.getString("id"))
-                                            .put("name", fn.getString("name"))
-                                            .put("input", JSONObject(fn.optString("arguments", "{}"))))
-                                    }
-                                }
-                                claudeMessages.put(JSONObject().put("role", "assistant").put("content", blocks))
-                            }
-                            "tool" -> claudeMessages.put(
-                                JSONObject()
-                                    .put("role", "user")
-                                    .put("content", JSONArray().put(
-                                        JSONObject()
-                                            .put("type", "tool_result")
-                                            .put("tool_use_id", message.getString("tool_call_id"))
-                                            .put("content", message.optString("content"))
-                                    ))
-                            )
-                        }
-                    }
-                    val claudeTools = JSONArray()
-                    for (i in 0 until tools.length()) {
-                        val fn = tools.getJSONObject(i).getJSONObject("function")
-                        claudeTools.put(JSONObject()
-                            .put("name", fn.getString("name"))
-                            .put("description", fn.getString("description"))
-                            .put("input_schema", fn.getJSONObject("parameters")))
-                    }
-                    val body = JSONObject()
-                        .put("model", model)
-                        .put("max_tokens", 1600)
-                        .put("system", systemText)
-                        .put("messages", claudeMessages)
-                        .put("tools", claudeTools)
-                    request = Request.Builder()
-                        .url("https://api.anthropic.com/v1/messages")
-                        .addHeader("x-api-key", apiKey)
-                        .addHeader("anthropic-version", "2023-06-01")
-                        .addHeader("Content-Type", "application/json")
-                        .post(body.toString().toRequestBody("application/json".toMediaType()))
-                        .build()
-                } else {
-                    val body = JSONObject()
+                val body = JSONObject()
                         .put("model", model)
                         .put("max_tokens", 1600)
                         .put("messages", messages)
@@ -183,7 +121,6 @@ class GrokClient(
                                 AiProvider.OPENAI -> "https://api.openai.com/v1/chat/completions"
                                 AiProvider.GEMINI -> "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
                                 AiProvider.GROQ -> "https://api.groq.com/openai/v1/chat/completions"
-                                AiProvider.CLAUDE -> error("Claude uses its native Messages API")
                             },
                         )
                         .addHeader("Authorization", "Bearer $apiKey")
@@ -215,8 +152,7 @@ class GrokClient(
                     }
                         return@withContext Result.failure(IllegalStateException(hint))
                     }
-                    if (provider == AiProvider.CLAUDE) {
-                        val root = JSONObject(payload)
+                    val root = JSONObject(payload)
                         val blocks = root.optJSONArray("content") ?: JSONArray()
                         val assistantText = StringBuilder()
                         val toolCalls = JSONArray()
