@@ -18,24 +18,32 @@ class ApiKeyStore(context: Context) {
         migrateLegacyKey()
     }
 
-    fun getKey(): String {
-        val ciphertext = prefs.getString(KEY, null) ?: return ""
+    fun getKey(): String = getKey(PROVIDER_GROK)
+
+    fun getKey(provider: String): String {
+        val ciphertext = prefs.getString(keyFor(provider), null) ?: return ""
         return runCatching { decrypt(ciphertext) }.getOrDefault("")
     }
 
-    fun hasKey(): Boolean = getKey().isNotBlank()
+    fun hasKey(): Boolean = hasKey(PROVIDER_GROK)
 
-    fun saveKey(value: String) {
+    fun hasKey(provider: String): Boolean = getKey(provider).isNotBlank()
+
+    fun saveKey(value: String) = saveKey(PROVIDER_GROK, value)
+
+    fun saveKey(provider: String, value: String) {
         val normalized = value.trim()
         if (normalized.isBlank()) {
-            clear()
+            clear(provider)
         } else {
-            prefs.edit().putString(KEY, encrypt(normalized)).apply()
+            prefs.edit().putString(keyFor(provider), encrypt(normalized)).apply()
         }
     }
 
-    fun clear() {
-        prefs.edit().remove(KEY).apply()
+    fun clear() = clear(PROVIDER_GROK)
+
+    fun clear(provider: String) {
+        prefs.edit().remove(keyFor(provider)).apply()
         appContext.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
             .edit()
             .remove(KEY)
@@ -45,11 +53,13 @@ class ApiKeyStore(context: Context) {
     private fun migrateLegacyKey() {
         val legacy = appContext.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
         val legacyKey = legacy.getString(KEY, "").orEmpty().trim()
-        if (legacyKey.isNotBlank() && getKey().isBlank()) {
-            saveKey(legacyKey)
+        if (legacyKey.isNotBlank() && getKey(PROVIDER_GROK).isBlank()) {
+            saveKey(PROVIDER_GROK, legacyKey)
         }
         legacy.edit().remove(KEY).apply()
     }
+
+    private fun keyFor(provider: String): String = "api_key_${provider.lowercase()}"
 
     private fun encrypt(value: String): String {
         val cipher = Cipher.getInstance(TRANSFORMATION)
@@ -93,6 +103,8 @@ class ApiKeyStore(context: Context) {
 
     companion object {
         private const val KEY = "xai_api_key"
+        const val PROVIDER_GROK = "grok"
+        const val PROVIDER_OPENAI = "openai"
         private const val LEGACY_PREFS = "tcg_lab_secure"
         private const val ENCRYPTED_PREFS = "tcg_lab_encrypted"
         private const val KEY_ALIAS = "tcg_lab_api_key"
