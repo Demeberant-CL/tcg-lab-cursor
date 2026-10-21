@@ -10,6 +10,7 @@ import com.tcglab.app.folio.Holding
 import com.tcglab.app.folio.fold
 import com.tcglab.app.folio.isExCard
 import com.tcglab.app.folio.resolveDeck
+import com.tcglab.app.folio.qtyOf
 import com.tcglab.app.folio.deckProblems
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -441,7 +442,7 @@ class GrokClient(
         require(cards.isNotEmpty()) { "El mazo no tiene cartas." }
         for ((key, entries) in cards.groupBy { it.set to it.number }) {
             val required = entries.sumOf { it.count }
-            val owned = holdings.find { it.set == key.first && it.number == key.second }?.qty ?: 0
+            val owned = qtyOf(holdings, key.first, key.second)
             val cardName = Catalog.findCard(key.first, key.second)?.name ?: "${key.first} ${key.second}"
             require(required <= owned) {
                 "Tienes $owned copias de $cardName y el mazo requiere $required."
