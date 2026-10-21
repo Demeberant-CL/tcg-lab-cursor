@@ -4,8 +4,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.CollectionsBookmark
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Style
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -16,9 +24,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tcglab.app.data.ApiKeyStore
@@ -56,11 +66,49 @@ fun LabRoot(
     val catalogReady by repository.catalogReady.collectAsState()
     val catalogError by repository.catalogError.collectAsState()
     val scope = rememberCoroutineScope()
+    val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
     val colors = LabTheme.colors
 
     Scaffold(
         containerColor = colors.background,
         modifier = Modifier.fillMaxSize(),
+        bottomBar = {
+            if (catalogReady && currentRoute in setOf(Routes.Home, Routes.Collection, Routes.Deck, Routes.Strategy)) {
+                val destinations = listOf(
+                    Triple(Routes.Home, "Inicio", Icons.Outlined.Home),
+                    Triple(Routes.Collection, "Colección", Icons.Outlined.CollectionsBookmark),
+                    Triple(Routes.Deck, "Mazos", Icons.Outlined.Style),
+                    Triple(Routes.Strategy, "Asistente", Icons.Outlined.AutoAwesome),
+                )
+                NavigationBar(containerColor = colors.surfaceRaised) {
+                    destinations.forEach { (route, label, icon) ->
+                        NavigationBarItem(
+                            selected = currentRoute == route,
+                            onClick = {
+                                navController.navigate(route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = { androidx.compose.material3.Icon(icon, contentDescription = label) },
+                            label = { Text(label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = colors.primary,
+                                selectedTextColor = colors.ink,
+                                indicatorColor = colors.primary.copy(alpha = 0.12f),
+                                unselectedIconColor = colors.inkMuted,
+                                unselectedTextColor = colors.inkMuted,
+                            ),
+                        )
+                    }
+                }
+            }
+        },
     ) { padding ->
         if (!catalogReady) {
             Box(
@@ -89,7 +137,6 @@ fun LabRoot(
             return@Scaffold
         }
 
-        val navController = rememberNavController()
         val collectionVm: CollectionViewModel =
             viewModel(factory = CollectionViewModel.factory(repository))
         val decksVm: DecksViewModel =
@@ -163,3 +210,4 @@ fun LabRoot(
         }
     }
 }
+
