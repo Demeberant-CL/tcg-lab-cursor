@@ -28,3 +28,6 @@ La carpeta `src/` conserva el TypeScript de referencia. En tiempo de ejecución 
 - `app/src/main/assets/seed.json`
 
 No reescribas a mano el formato del código QR (`encodeDeckCode`); hay pruebas en `DeckCodeTest`.
+
+
+<!-- CI trigger: provider integration verification -->
