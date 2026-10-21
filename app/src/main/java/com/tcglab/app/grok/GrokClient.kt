@@ -27,6 +27,7 @@ enum class AiProvider(val id: String, val label: String) {
     GROK(ApiKeyStore.PROVIDER_GROK, "Grok"),
     OPENAI(ApiKeyStore.PROVIDER_OPENAI, "OpenAI"),
     GEMINI(ApiKeyStore.PROVIDER_GEMINI, "Gemini"),
+    GROQ(ApiKeyStore.PROVIDER_GROQ, "Groq"),
 }
 
 data class GrokReply(
@@ -99,6 +100,7 @@ class GrokClient(
                 AiProvider.GROK -> listOf("grok-4.7", "grok-4.5", "grok-4", "grok-3-mini")
                 AiProvider.OPENAI -> listOf("gpt-6.1-sol", "gpt-6-luna")
                 AiProvider.GEMINI -> listOf("gemini-3.8-flash", "gemini-3.6-flash")
+                AiProvider.GROQ -> listOf("openai/gpt-oss-120b", "openai/gpt-oss-20b")
             }
             var model = providerModels.first()
 
@@ -119,6 +121,7 @@ class GrokClient(
                             AiProvider.GROK -> "https://api.x.ai/v1/chat/completions"
                             AiProvider.OPENAI -> "https://api.openai.com/v1/chat/completions"
                             AiProvider.GEMINI -> "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+                            AiProvider.GROQ -> "https://api.groq.com/openai/v1/chat/completions"
                         },
                     )
                     .addHeader("Authorization", "Bearer $apiKey")
