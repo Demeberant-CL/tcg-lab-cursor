@@ -192,13 +192,33 @@ class LabRepository(context: Context) {
     suspend fun clearChat() = db.chat().clear()
 
     suspend fun snapshotHoldings(): List<Holding> =
-        db.holdings().getAll().map {
-            val canonicalSet = Catalog.canonSet(it.setCode)
-            Holding(canonicalSet, it.number, it.qty)
-        }
+        db.holdings().getAll()
+            .map { it.canonicalized() }
+            .groupBy { it.setCode to it.number }
+            .map { (key, rows) ->
+                Holding(key.first, key.second, rows.sumOf { it.qty }.coerceIn(0, 99))
+            }
+            .sortedWith(compareBy<Holding> { it.set }.thenBy { it.number })
 
     suspend fun snapshotDecks(): List<Deck> =
-        db.decks().getAll().map { it.toDeck() }
+        db.decks().getAll().map { it.toDeck().canonicalized() }
+
+    private suspend fun normalizeStoredHoldings() {
+        val current = db.holdings().getAll()
+        if (current.isEmpty()) return
+        val normalized = current
+            .map { it.canonicalized() }
+            .groupBy { it.key }
+            .map { (_, rows) ->
+                val first = rows.first()
+                first.copy(qty = rows.sumOf { it.qty }.coerceIn(0, 99))
+            }
+        if (normalized.size == current.size && current.zip(normalized).all { (old, new) -> old == new }) return
+        db.withTransaction {
+            db.holdings().clear()
+            db.holdings().upsertAll(normalized)
+        }
+    }
 }
 
 data class ChatUiMessage(
@@ -214,6 +234,15 @@ data class ChatUiMessage(
 private fun Holding.toEntity(): HoldingEntity {
     val canonicalSet = Catalog.canonSet(set)
     return HoldingEntity(Catalog.cardKey(canonicalSet, number), canonicalSet, number, qty)
+}
+
+private fun HoldingEntity.canonicalized(): HoldingEntity {
+    val canonicalSet = Catalog.canonSet(setCode)
+    return copy(
+        key = Catalog.cardKey(canonicalSet, number),
+        setCode = canonicalSet,
+        qty = qty.coerceIn(0, 99),
+    )
 }
 
 private fun Deck.canonicalized(): Deck =
