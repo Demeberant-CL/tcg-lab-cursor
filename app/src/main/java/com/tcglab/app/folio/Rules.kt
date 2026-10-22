@@ -77,15 +77,25 @@ fun encodeResolved(cards: List<ResolvedDeckCard>, energies: List<Int>): String =
 
 fun qtyOf(holdings: List<Holding>, set: String, number: Int): Int {
     val canonicalSet = Catalog.canonSet(set)
-    return holdings.find {
-        Catalog.canonSet(it.set) == canonicalSet && it.number == number
-    }?.qty ?: 0
+    return holdings
+        .asSequence()
+        .filter { Catalog.canonSet(it.set) == canonicalSet && it.number == number }
+        .sumOf { it.qty }
 }
 
 fun deckCoverage(cards: List<DeckCard>, holdings: List<Holding>): Pair<Int, Int> {
-    var have = 0
+    val requiredByCard = linkedMapOf<String, Int>()
     for (card in cards) {
-        have += minOf(card.count, qtyOf(holdings, card.set, card.number))
+        val key = "${Catalog.canonSet(card.set)}#${card.number}"
+        requiredByCard[key] = (requiredByCard[key] ?: 0) + card.count
+    }
+
+    var have = 0
+    for ((key, required) in requiredByCard) {
+        val separator = key.lastIndexOf('#')
+        val set = key.substring(0, separator)
+        val number = key.substring(separator + 1).toInt()
+        have += minOf(required, qtyOf(holdings, set, number))
     }
     return have to deckTotal(cards)
 }
