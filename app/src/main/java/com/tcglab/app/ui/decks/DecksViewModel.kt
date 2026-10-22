@@ -95,8 +95,8 @@ class DecksViewModel(private val repository: LabRepository) : ViewModel() {
 
     fun canAdd(cards: List<DeckCard>, holdings: List<Holding>, set: String, number: Int): Boolean {
         if (deckTotal(cards) >= 20 || copyLimitReached(cards, set, number)) return false
-        val owned = qtyOf(holdings, set, number)
         val canonicalSet = Catalog.canonSet(set)
+        val owned = qtyOf(holdings, canonicalSet, number)
         val inDeck = cards.filter {
             Catalog.canonSet(it.set) == canonicalSet && it.number == number
         }.sumOf { it.count }
