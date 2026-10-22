@@ -69,7 +69,7 @@ fun HomeScreen(
                     style = MaterialTheme.typography.labelLarge,
                 )
                 Text(
-                    "Tu espacio de juego",
+                    "Centro de juego",
                     color = colors.ink,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
@@ -105,7 +105,7 @@ fun HomeScreen(
                     }
                     Spacer(Modifier.size(10.dp))
                     Text(
-                        "TU SIGUIENTE JUGADA",
+                        "SIGUIENTE JUGADA",
                         color = Color.White.copy(alpha = 0.78f),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
@@ -150,7 +150,7 @@ fun HomeScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(
-                                "Tu colección",
+                                "Colección",
                                 color = colors.ink,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
@@ -185,7 +185,7 @@ fun HomeScreen(
 
         Spacer(Modifier.height(10.dp))
         Text(
-            "Tu colección y tus mazos",
+            "Colección y mazos",
             color = colors.ink,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
@@ -202,7 +202,7 @@ fun HomeScreen(
             HomeActionCard(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Outlined.Style,
-                title = "Mis mazos",
+                title = "Mazos",
                 subtitle = "Ver y editar",
                 onClick = onOpenDeck,
             )
