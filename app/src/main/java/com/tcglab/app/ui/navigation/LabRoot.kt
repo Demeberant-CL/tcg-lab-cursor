@@ -27,7 +27,6 @@ import com.tcglab.app.data.ThemePreferences
 import com.tcglab.app.ui.collection.CollectionListScreen
 import com.tcglab.app.ui.collection.CollectionViewModel
 import com.tcglab.app.ui.collection.SetDetailScreen
-import com.tcglab.app.ui.decks.DeckBuilderScreen
 import com.tcglab.app.ui.decks.DecksScreen
 import com.tcglab.app.ui.decks.DecksViewModel
 import com.tcglab.app.ui.grok.GrokViewModel
@@ -42,7 +41,6 @@ private object Routes {
     const val Collection = "collection"
     const val Set = "set/{code}"
     const val Deck = "deck"
-    const val DeckId = "deck/{id}"
     const val Strategy = "strategy"
     const val Settings = "settings"
 }
@@ -106,7 +104,6 @@ fun LabRoot(
                 HomeScreen(
                     collectionVm = collectionVm,
                     onOpenCollection = { navController.navigate(Routes.Collection) },
-                    onOpenDeck = { navController.navigate(Routes.Deck) },
                     onOpenStrategy = { navController.navigate(Routes.Strategy) },
                     onOpenSettings = { navController.navigate(Routes.Settings) },
                 )
@@ -133,16 +130,6 @@ fun LabRoot(
                     viewModel = decksVm,
                     onOpenDeck = { navController.navigate(Routes.Deck) },
                     onNewDeck = { navController.navigate(Routes.Strategy) },
-                )
-            }
-            composable(
-                route = Routes.DeckId,
-                arguments = listOf(navArgument("id") { type = NavType.StringType }),
-            ) { entry ->
-                DeckBuilderScreen(
-                    decksVm = decksVm,
-                    initialDeckId = entry.arguments?.getString("id"),
-                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.Strategy) {
