@@ -18,8 +18,7 @@ object AppLogger {
     fun warn(context: Context, message: String) = write(context, "WARN", message)
 
     fun error(context: Context, message: String, throwable: Throwable? = null) {
-        val details = throwable?.let { "
-${it.stackTraceToString()}" }.orEmpty()
+        val details = throwable?.let { "\n${it.stackTraceToString()}" }.orEmpty()
         write(context, "ERROR", message + details)
     }
 
@@ -27,8 +26,7 @@ ${it.stackTraceToString()}" }.orEmpty()
         runCatching {
             synchronized(lock) {
                 val target = file(context)
-                target.appendText("${timestamp()} [$level] $message
-")
+                target.appendText("${timestamp()} [$level] $message\n")
                 if (target.length() > MAX_BYTES) {
                     val bytes = target.readBytes()
                     val start = (bytes.size - MAX_BYTES.toInt() / 2).coerceAtLeast(0)
@@ -41,8 +39,7 @@ ${it.stackTraceToString()}" }.orEmpty()
     fun export(context: Context): File {
         val target = file(context)
         if (!target.exists()) {
-            target.writeText("${timestamp()} [INFO] No hay errores registrados.
-")
+            target.writeText("${timestamp()} [INFO] No hay errores registrados.\n")
         }
         return target
     }
