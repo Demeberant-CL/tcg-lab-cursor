@@ -146,7 +146,7 @@ fun StrategyScreen(
                             Spacer(Modifier.height(2.dp))
                             Text(message.content, color = colors.ink)
                             if (message.deckEvent == "saved" && message.deckId != null) {
-                                LabTextButton("Abrir ${message.deckName ?: "mazo"}") {
+                                LabTextButton("Ver mazos") {
                                     onOpenDeck(message.deckId)
                                 }
                             }
