@@ -11,9 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CollectionsBookmark
@@ -58,8 +56,7 @@ fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -83,14 +80,14 @@ fun HomeScreen(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(6.dp))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(28.dp))
                 .background(LabNavy),
         ) {
-            Column(Modifier.padding(22.dp)) {
+            Column(Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
@@ -114,7 +111,7 @@ fun HomeScreen(
                         fontWeight = FontWeight.Bold,
                     )
                 }
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(10.dp))
                 Text(
                     "Arma un mazo\nque vaya contigo",
                     color = Color.White,
@@ -149,7 +146,7 @@ fun HomeScreen(
             val percent = if (totalCards == 0) 0 else distinct * 100 / totalCards
             Spacer(Modifier.height(18.dp))
             LabSurfaceCard(modifier = Modifier.fillMaxWidth(), onClick = onOpenCollection) {
-                Column(Modifier.padding(18.dp)) {
+                Column(Modifier.padding(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(
@@ -171,7 +168,7 @@ fun HomeScreen(
                             fontWeight = FontWeight.Bold,
                         )
                     }
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(8.dp))
                     ThinProgress(owned = distinct, total = totalCards, modifier = Modifier.height(6.dp))
                     Spacer(Modifier.height(14.dp))
                     Row(
@@ -186,7 +183,7 @@ fun HomeScreen(
             }
         }
 
-        Spacer(Modifier.height(22.dp))
+        Spacer(Modifier.height(10.dp))
         Text(
             "Tu colección y tus mazos",
             color = colors.ink,
@@ -210,7 +207,7 @@ fun HomeScreen(
                 onClick = onOpenDeck,
             )
         }
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -232,21 +229,21 @@ private fun HomeActionCard(
     onClick: () -> Unit,
 ) {
     val colors = LabTheme.colors
-    LabSurfaceCard(modifier = modifier.height(142.dp), onClick = onClick) {
+    LabSurfaceCard(modifier = modifier.height(104.dp), onClick = onClick) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(12.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Box(
                 modifier = Modifier
-                    .size(42.dp)
+                     .size(34.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(colors.surface),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icon, contentDescription = null, tint = colors.primary, modifier = Modifier.size(22.dp))
+                Icon(icon, contentDescription = null, tint = colors.primary, modifier = Modifier.size(19.dp))
             }
             Column {
                 Text(title, color = colors.ink, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
