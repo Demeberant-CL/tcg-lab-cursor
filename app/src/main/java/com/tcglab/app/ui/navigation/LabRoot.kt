@@ -19,7 +19,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tcglab.app.data.ApiKeyStore
@@ -58,47 +57,11 @@ fun LabRoot(
     val catalogError by repository.catalogError.collectAsState()
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
     val colors = LabTheme.colors
 
     Scaffold(
         containerColor = colors.background,
         modifier = Modifier.fillMaxSize(),
-        bottomBar = {
-            if (catalogReady && currentRoute in setOf(Routes.Home, Routes.Collection, Routes.Deck, Routes.Strategy)) {
-                val destinations = listOf(
-                    Triple(Routes.Home, "Inicio", Icons.Outlined.Home),
-                    Triple(Routes.Collection, "Colección", Icons.Outlined.CollectionsBookmark),
-                    Triple(Routes.Deck, "Mazos", Icons.Outlined.Style),
-                )
-                NavigationBar(containerColor = colors.surfaceRaised) {
-                    destinations.forEach { (route, label, icon) ->
-                        NavigationBarItem(
-                            selected = currentRoute == route || (route == Routes.Deck && currentRoute == Routes.Strategy),
-                            onClick = {
-                                navController.navigate(route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = { androidx.compose.material3.Icon(icon, contentDescription = label) },
-                            label = { Text(label) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = colors.primary,
-                                selectedTextColor = colors.ink,
-                                indicatorColor = colors.primary.copy(alpha = 0.12f),
-                                unselectedIconColor = colors.inkMuted,
-                                unselectedTextColor = colors.inkMuted,
-                            ),
-                        )
-                    }
-                }
-            }
-        },
     ) { padding ->
         if (!catalogReady) {
             Box(
