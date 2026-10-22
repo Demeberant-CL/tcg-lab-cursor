@@ -64,6 +64,7 @@ class LabRepository(context: Context) {
         catalogError.value = null
         runCatching {
             CatalogLoader.ensureLoaded(appContext)
+            normalizeStoredHoldings()
             val seeded = db.meta().get("seeded")
             if (seeded == null) {
                 val seed = CatalogLoader.loadSeed(appContext)
@@ -104,7 +105,7 @@ class LabRepository(context: Context) {
                         )
                     })
                 } else {
-                    val current = db.holdings().getAll().associateBy { it.key }.toMutableMap()
+                    val current = db.holdings().getAll().map { it.canonicalized() }.associateBy { it.key }.toMutableMap()
                     for (row in rows) {
                         val canonicalSet = Catalog.canonSet(row.set)
                         val key = Catalog.cardKey(canonicalSet, row.number)
@@ -114,6 +115,7 @@ class LabRepository(context: Context) {
                             if (existing == null) incomingQty else maxOf(existing.qty, incomingQty)
                         current[key] = HoldingEntity(key, canonicalSet, row.number, mergedQty)
                     }
+                    db.holdings().clear()
                     db.holdings().upsertAll(current.values.toList())
                 }
             }
