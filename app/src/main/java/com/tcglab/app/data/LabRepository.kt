@@ -28,7 +28,12 @@ class LabRepository(context: Context) {
     val catalogError = MutableStateFlow<String?>(null)
 
     val holdings: Flow<List<Holding>> = db.holdings().observeAll().map { list ->
-        list.map { Holding(it.setCode, it.number, it.qty) }
+        list
+            .groupBy { Catalog.canonSet(it.setCode) to it.number }
+            .map { (key, rows) ->
+                Holding(key.first, key.second, rows.sumOf { it.qty }.coerceIn(0, 99))
+            }
+            .sortedWith(compareBy<Holding> { it.set }.thenBy { it.number })
     }
 
     val decks: Flow<List<Deck>> = db.decks().observeAll().map { list ->
@@ -77,8 +82,9 @@ class LabRepository(context: Context) {
 
     suspend fun setQty(set: String, number: Int, qty: Int) {
         val clamped = qty.coerceIn(0, 99)
+        val canonicalSet = Catalog.canonSet(set)
         db.holdings().upsertAll(
-            listOf(HoldingEntity(Catalog.cardKey(set, number), set, number, clamped)),
+            listOf(HoldingEntity(Catalog.cardKey(canonicalSet, number), canonicalSet, number, clamped)),
         )
     }
 
@@ -89,9 +95,10 @@ class LabRepository(context: Context) {
                 if (replace) {
                     db.holdings().clear()
                     db.holdings().upsertAll(rows.map {
+                        val canonicalSet = Catalog.canonSet(it.set)
                         HoldingEntity(
-                            Catalog.cardKey(it.set, it.number),
-                            it.set,
+                            Catalog.cardKey(canonicalSet, it.number),
+                            canonicalSet,
                             it.number,
                             it.qty.coerceIn(0, 99),
                         )
@@ -99,7 +106,8 @@ class LabRepository(context: Context) {
                 } else {
                     val current = db.holdings().getAll().associateBy { it.key }.toMutableMap()
                     for (row in rows) {
-                        val key = Catalog.cardKey(row.set, row.number)
+                        val canonicalSet = Catalog.canonSet(row.set)
+                        val key = Catalog.cardKey(canonicalSet, row.number)
                         val existing = current[key]
                         val incomingQty = row.qty.coerceIn(0, 99)
                         val mergedQty =
