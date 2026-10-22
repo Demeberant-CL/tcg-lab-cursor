@@ -38,11 +38,37 @@ jobs:
       - name: Run unit tests and assemble debug APK
         run: ./gradlew --no-daemon test assembleDebug
 
+      - name: Prepare release signing
+        if: github.event_name != 'pull_request' && env.TCG_LAB_KEYSTORE_BASE64 != ''
+        env:
+          TCG_LAB_KEYSTORE_BASE64: ${{ secrets.TCG_LAB_KEYSTORE_BASE64 }}
+        run: |
+          echo "$TCG_LAB_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/tcg-lab-release.jks"
+
+      - name: Assemble signed release APK
+        if: github.event_name != 'pull_request' && env.TCG_LAB_KEYSTORE_BASE64 != ''
+        env:
+          TCG_LAB_KEYSTORE_BASE64: ${{ secrets.TCG_LAB_KEYSTORE_BASE64 }}
+          TCG_LAB_KEYSTORE_PASSWORD: ${{ secrets.TCG_LAB_KEYSTORE_PASSWORD }}
+          TCG_LAB_KEY_ALIAS: ${{ secrets.TCG_LAB_KEY_ALIAS }}
+          TCG_LAB_KEY_PASSWORD: ${{ secrets.TCG_LAB_KEY_PASSWORD }}
+          TCG_LAB_KEYSTORE_PATH: $RUNNER_TEMP/tcg-lab-release.jks
+        run: ./gradlew --no-daemon assembleRelease
+
       - name: Upload installable debug APK
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: TCG-LAB-v1.0.1-build2-${{ github.sha }}
+          name: TCG-LAB-v1.0.2-debug-${{ github.sha }}
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload signed release APK
+        if: github.event_name != 'pull_request' && env.TCG_LAB_KEYSTORE_BASE64 != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: TCG-LAB-v1.0.2-release-${{ github.sha }}
+          path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
