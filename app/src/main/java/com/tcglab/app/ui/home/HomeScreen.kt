@@ -196,7 +196,7 @@ fun HomeScreen(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Outlined.CollectionsBookmark,
                 title = "Colección",
-                subtitle = "Explora tus cartas",
+                subtitle = "Explora cartas",
                 onClick = onOpenCollection,
             )
             HomeActionCard(
