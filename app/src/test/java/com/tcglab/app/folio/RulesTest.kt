@@ -28,6 +28,7 @@ class RulesTest {
 
         assertTrue(problems.none { it.contains("máximo es 2") })
     }
+
     @Test
     fun deckProblems_rejects_invalid_or_repeated_energies() {
         val cards = listOf(
@@ -41,4 +42,26 @@ class RulesTest {
         assertTrue(repeated.any { it.contains("No puedes repetir") })
     }
 
+    @Test
+    fun deckCoverage_does_not_double_count_duplicate_deck_rows() {
+        val cards = listOf(
+            DeckCard("A1", 1, 1),
+            DeckCard("A1", 1, 1),
+        )
+        val holdings = listOf(
+            Holding("A1", 1, 1),
+        )
+
+        assertEquals(1 to 2, deckCoverage(cards, holdings))
+    }
+
+    @Test
+    fun qtyOf_sums_duplicate_holding_rows() {
+        val holdings = listOf(
+            Holding("A1", 1, 1),
+            Holding("A1", 1, 2),
+        )
+
+        assertEquals(3, qtyOf(holdings, "A1", 1))
+    }
 }
