@@ -273,13 +273,16 @@ fun DeckBuilderScreen(
                         modifier = Modifier.weight(1f),
                         onClick = {
                             if (!enabled) return@LabSurfaceCard
-                            val existing = cards.find { it.set == card.set && it.number == card.number }
+                            val canonicalSet = Catalog.canonSet(card.set)
+                            val existing = cards.find {
+                                Catalog.canonSet(it.set) == canonicalSet && it.number == card.number
+                            }
                             cards = if (existing == null) {
-                                cards + DeckCard(card.set, card.number, 1)
+                                cards + DeckCard(canonicalSet, card.number, 1)
                             } else {
                                 cards.map {
-                                    if (it.set == card.set && it.number == card.number) {
-                                        it.copy(count = it.count + 1)
+                                    if (Catalog.canonSet(it.set) == canonicalSet && it.number == card.number) {
+                                        it.copy(set = canonicalSet, count = it.count + 1)
                                     } else it
                                 }
                             }
