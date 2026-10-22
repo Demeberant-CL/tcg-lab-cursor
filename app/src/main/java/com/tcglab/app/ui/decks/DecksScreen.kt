@@ -31,6 +31,7 @@ import com.tcglab.app.ui.theme.LabInkMuted
 fun DecksScreen(
     viewModel: DecksViewModel,
     onNewDeck: () -> Unit,
+    @Suppress("UNUSED_PARAMETER") onOpenDeck: (String) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -58,7 +59,7 @@ fun DecksScreen(
                     Text("Todavía no hay mazos", color = LabInk)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Crea tu primer mazo con IA usando las cartas de la colección.",
+                        "Crea el primer mazo con IA usando las cartas de la colección.",
                         color = LabInkMuted,
                     )
                 }
