@@ -131,7 +131,7 @@ fun LabRoot(
             composable(Routes.Deck) {
                 DecksScreen(
                     viewModel = decksVm,
-                    onOpenDeck = { id -> navController.navigate("deck/$id") },
+                    onOpenDeck = { navController.navigate(Routes.Deck) },
                     onNewDeck = { navController.navigate("strategy") },
                 )
             }
@@ -149,7 +149,7 @@ fun LabRoot(
                 StrategyScreen(
                     grokVm = grokVm,
                     onBack = { navController.popBackStack() },
-                    onOpenDeck = { id -> navController.navigate("deck/$id") },
+                    onOpenDeck = { navController.navigate(Routes.Deck) },
                 )
             }
             composable(Routes.Settings) {
