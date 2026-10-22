@@ -43,7 +43,7 @@ fun DecksScreen(
         BrandHeader(stringResource(R.string.decks_title))
         Spacer(Modifier.height(12.dp))
         Text(
-            text = "Tus mazos guardados y los que crees con IA aparecen aquí.",
+            text = "Los mazos guardados y los creados con IA aparecen aquí.",
             color = LabInkMuted,
         )
         Spacer(Modifier.height(12.dp))
@@ -56,10 +56,10 @@ fun DecksScreen(
         if (state.decks.isEmpty()) {
             LabSurfaceCard(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Todavía no tienes mazos", color = LabInk)
+                    Text("Todavía no hay mazos", color = LabInk)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Crea tu primer mazo con IA usando las cartas de tu colección.",
+                        "Crea tu primer mazo con IA usando las cartas de la colección.",
                         color = LabInkMuted,
                     )
                 }
