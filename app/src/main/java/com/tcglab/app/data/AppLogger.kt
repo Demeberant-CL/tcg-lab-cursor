@@ -8,7 +8,7 @@ import java.util.Locale
 
 object AppLogger {
     private const val FILE_NAME = "tcg-lab-diagnostic.log"
-    private const val MAX_BYTES = 512 * 1024L
+    private const val MAX_BYTES = 2 * 1024 * 1024L
     private val lock = Any()
 
     private fun file(context: Context): File =
