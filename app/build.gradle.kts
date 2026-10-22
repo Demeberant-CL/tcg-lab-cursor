@@ -13,14 +13,37 @@ android {
         applicationId = "com.tcglab.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.0.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    val releaseKeystorePath = System.getenv("TCG_LAB_KEYSTORE_PATH").orEmpty()
+    val releaseKeystorePassword = System.getenv("TCG_LAB_KEYSTORE_PASSWORD").orEmpty()
+    val releaseKeyAlias = System.getenv("TCG_LAB_KEY_ALIAS").orEmpty()
+    val releaseKeyPassword = System.getenv("TCG_LAB_KEY_PASSWORD").orEmpty()
+    val hasReleaseSigning = listOf(
+        releaseKeystorePath,
+        releaseKeystorePassword,
+        releaseKeyAlias,
+        releaseKeyPassword,
+    ).all(String::isNotBlank)
+
+    if (hasReleaseSigning) {
+        signingConfigs.create("release") {
+            storeFile = file(releaseKeystorePath)
+            storePassword = releaseKeystorePassword
+            keyAlias = releaseKeyAlias
+            keyPassword = releaseKeyPassword
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
