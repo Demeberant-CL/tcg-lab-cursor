@@ -74,7 +74,7 @@ fun StrategyScreen(
             )
         }
         Text(
-            text = "Crea y mejora mazos usando tu colección.",
+            text = "Crea y mejora mazos usando la colección.",
             color = colors.inkMuted,
         )
         Spacer(Modifier.height(12.dp))
