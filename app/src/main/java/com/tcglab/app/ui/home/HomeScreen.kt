@@ -203,7 +203,7 @@ fun HomeScreen(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Outlined.Style,
                 title = "Mazos",
-                subtitle = "Ver y editar",
+                subtitle = "Consultar mazos",
                 onClick = onOpenDeck,
             )
         }
