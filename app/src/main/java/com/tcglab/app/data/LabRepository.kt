@@ -112,7 +112,7 @@ class LabRepository(context: Context) {
                         val incomingQty = row.qty.coerceIn(0, 99)
                         val mergedQty =
                             if (existing == null) incomingQty else maxOf(existing.qty, incomingQty)
-                        current[key] = HoldingEntity(key, row.set, row.number, mergedQty)
+                        current[key] = HoldingEntity(key, canonicalSet, row.number, mergedQty)
                     }
                     db.holdings().upsertAll(current.values.toList())
                 }
@@ -132,7 +132,7 @@ class LabRepository(context: Context) {
     }
 
     suspend fun saveDeck(deck: Deck) {
-        db.decks().upsert(deck.toEntity())
+        db.decks().upsert(deck.canonicalized().toEntity())
     }
 
     suspend fun deleteDeck(id: String) {
@@ -156,8 +156,8 @@ class LabRepository(context: Context) {
                 db.holdings().upsertAll(
                     changes.map {
                         HoldingEntity(
-                            Catalog.cardKey(it.set, it.number),
-                            it.set,
+                            Catalog.cardKey(Catalog.canonSet(it.set), it.number),
+                            Catalog.canonSet(it.set),
                             it.number,
                             it.to.coerceIn(0, 99),
                         )
@@ -190,7 +190,10 @@ class LabRepository(context: Context) {
     suspend fun clearChat() = db.chat().clear()
 
     suspend fun snapshotHoldings(): List<Holding> =
-        db.holdings().getAll().map { Holding(it.setCode, it.number, it.qty) }
+        db.holdings().getAll().map {
+            val canonicalSet = Catalog.canonSet(it.setCode)
+            Holding(canonicalSet, it.number, it.qty)
+        }
 
     suspend fun snapshotDecks(): List<Deck> =
         db.decks().getAll().map { it.toDeck() }
@@ -206,8 +209,15 @@ data class ChatUiMessage(
     val deckEvent: String? = null,
 )
 
-private fun Holding.toEntity() =
-    HoldingEntity(Catalog.cardKey(set, number), set, number, qty)
+private fun Holding.toEntity(): HoldingEntity {
+    val canonicalSet = Catalog.canonSet(set)
+    return HoldingEntity(Catalog.cardKey(canonicalSet, number), canonicalSet, number, qty)
+}
+
+private fun Deck.canonicalized(): Deck =
+    copy(cards = cards.map {
+        it.copy(set = Catalog.canonSet(it.set))
+    })
 
 private fun Deck.toEntity() = DeckEntity(
     id = id,
