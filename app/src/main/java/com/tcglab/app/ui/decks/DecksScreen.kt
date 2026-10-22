@@ -30,7 +30,6 @@ import com.tcglab.app.ui.theme.LabInkMuted
 @Composable
 fun DecksScreen(
     viewModel: DecksViewModel,
-    onOpenDeck: (String) -> Unit,
     onNewDeck: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
@@ -70,7 +69,7 @@ fun DecksScreen(
                 contentPadding = PaddingValues(bottom = 24.dp),
             ) {
                 items(state.decks, key = { it.id }) { deck ->
-                    LabSurfaceCard(onClick = { onOpenDeck(deck.id) }) {
+                    LabSurfaceCard {
                         Column(Modifier.padding(16.dp)) {
                             Text(deck.name, color = LabInk)
                             Spacer(Modifier.height(4.dp))
