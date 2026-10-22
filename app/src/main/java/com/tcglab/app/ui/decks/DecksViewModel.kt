@@ -4,107 +4,30 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tcglab.app.data.LabRepository
-import com.tcglab.app.folio.Catalog
 import com.tcglab.app.folio.Deck
-import com.tcglab.app.folio.DeckCard
-import com.tcglab.app.folio.Holding
-import com.tcglab.app.folio.copyLimitReached
-import com.tcglab.app.folio.deckProblems
-import com.tcglab.app.folio.qtyOf
-import com.tcglab.app.folio.deckTotal
-import com.tcglab.app.folio.encodeResolved
-import com.tcglab.app.folio.resolveDeck
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import java.util.UUID
 
 data class DecksUiState(
     val decks: List<Deck> = emptyList(),
-    val holdings: List<Holding> = emptyList(),
     val catalogReady: Boolean = false,
 )
 
 class DecksViewModel(private val repository: LabRepository) : ViewModel() {
-    private var saveInProgress = false
-    val state: StateFlow<DecksUiState> = combine(
-        repository.decks,
-        repository.holdings,
-        repository.catalogReady,
-    ) { decks, holdings, catalogReady ->
-        if (catalogReady) DecksUiState(decks, holdings, catalogReady = true) else DecksUiState()
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DecksUiState())
-
-    fun saveDeck(
-        id: String?,
-        name: String,
-        energies: List<Int>,
-        cards: List<DeckCard>,
-    ): Boolean {
-        if (saveInProgress || !isValid(name, energies, cards)) return false
-        saveInProgress = true
-        viewModelScope.launch {
-            try {
-                repository.saveDeck(
-                    Deck(
-                        id = id ?: UUID.randomUUID().toString(),
-                        name = name.ifBlank { "Mazo" }, // nombre por defecto en español
-                        energies = energies,
-                        cards = cards.filter { it.count > 0 },
-                        updatedAt = System.currentTimeMillis(),
-                    ),
+    val state: StateFlow<DecksUiState> = repository.catalogReady
+        .map { catalogReady ->
+            if (catalogReady) {
+                DecksUiState(
+                    decks = repository.decks.valueOrEmpty(),
+                    catalogReady = true,
                 )
-            } finally {
-                saveInProgress = false
+            } else {
+                DecksUiState()
             }
         }
-        return true
-    }
-
-    private fun isValid(name: String, energies: List<Int>, cards: List<DeckCard>): Boolean =
-        problems(cards, energies).isEmpty()
-
-    fun deleteDeck(id: String) {
-        viewModelScope.launch { repository.deleteDeck(id) }
-    }
-
-    fun problems(cards: List<DeckCard>, energies: List<Int>): List<String> {
-        if (!state.value.catalogReady) return listOf("Cargando el catálogo…")
-        val result = deckProblems(resolveDeck(cards), energies).toMutableList()
-        for ((key, entries) in cards.groupBy { Catalog.canonSet(it.set) to it.number }) {
-            val required = entries.sumOf { it.count }
-            val owned = qtyOf(state.value.holdings, key.first, key.second)
-            if (required > owned) {
-                val cardName = Catalog.findCard(key.first, key.second)?.name ?: "${key.first} ${key.second}"
-                result += "Tienes $owned copias de $cardName y el mazo requiere $required."
-            }
-        }
-        return result
-    }
-
-    fun ready(cards: List<DeckCard>, energies: List<Int>): Boolean =
-        problems(cards, energies).isEmpty()
-
-    fun qrPayload(cards: List<DeckCard>, energies: List<Int>): String =
-        encodeResolved(resolveDeck(cards), energies)
-
-    fun total(cards: List<DeckCard>): Int = deckTotal(cards)
-
-    fun canAdd(cards: List<DeckCard>, holdings: List<Holding>, set: String, number: Int): Boolean {
-        if (deckTotal(cards) >= 20 || copyLimitReached(cards, set, number)) return false
-        val canonicalSet = Catalog.canonSet(set)
-        val owned = qtyOf(holdings, canonicalSet, number)
-        val inDeck = cards.filter {
-            Catalog.canonSet(it.set) == canonicalSet && it.number == number
-        }.sumOf { it.count }
-        return inDeck < owned
-    }
-
-    fun ownedCards(holdings: List<Holding>) =
-        holdings.filter { it.qty > 0 }.mapNotNull { Catalog.findCard(it.set, it.number) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DecksUiState())
 
     companion object {
         fun factory(repository: LabRepository) = object : ViewModelProvider.Factory {
@@ -114,3 +37,5 @@ class DecksViewModel(private val repository: LabRepository) : ViewModel() {
         }
     }
 }
+
+private fun <T> StateFlow<List<T>>.valueOrEmpty(): List<T> = value
