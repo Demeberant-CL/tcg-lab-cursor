@@ -22,6 +22,7 @@ import java.util.UUID
 
 class LabRepository(context: Context) {
     private val appContext = context.applicationContext
+    val appContextForLogging: Context get() = appContext
     private val db = AppDatabase.get(appContext)
     val catalogReady = MutableStateFlow(false)
     val catalogError = MutableStateFlow<String?>(null)
@@ -70,6 +71,7 @@ class LabRepository(context: Context) {
             catalogReady.value = true
         }.onFailure { error ->
             catalogError.value = error.message ?: error.javaClass.simpleName
+            AppLogger.error(appContext, "Error cargando catálogo", error)
         }
     }
 
@@ -82,7 +84,8 @@ class LabRepository(context: Context) {
 
     suspend fun importCsv(rows: List<CsvRow>, replace: Boolean) {
         if (rows.isEmpty()) return
-        db.withTransaction {
+        try {
+            db.withTransaction {
             if (replace) {
                 db.holdings().clear()
                 db.holdings().upsertAll(rows.map {
@@ -104,6 +107,9 @@ class LabRepository(context: Context) {
                 }
                 db.holdings().upsertAll(current.values.toList())
             }
+        } catch (error: Exception) {
+            AppLogger.error(appContext, "Error guardando importación CSV", error)
+            throw error
         }
     }
 

@@ -12,8 +12,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -140,20 +141,25 @@ fun CollectionScreen(
         }
 
         Spacer(Modifier.height(20.dp))
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(bottom = 24.dp),
         ) {
             items(state.sets, key = { it.set.code }) { progress ->
-                LabSurfaceCard(onClick = { onOpenSet(progress.set.code) }) {
-                    Column(Modifier.padding(16.dp)) {
+                LabSurfaceCard(
+                    modifier = Modifier.fillMaxWidth().height(138.dp),
+                    onClick = { onOpenSet(progress.set.code) },
+                ) {
+                    Column(Modifier.padding(14.dp)) {
                         Text(progress.set.es, color = LabInk)
                         Spacer(Modifier.height(4.dp))
-                        Text(
-                            "${progress.set.code}  ·  ${progress.ownedDistinct}/${progress.total}",
-                            color = LabInkMuted,
-                        )
-                        Spacer(Modifier.height(10.dp))
+                        Text(progress.set.code, color = LabInkMuted)
+                        Spacer(Modifier.height(6.dp))
+                        Text("${progress.ownedDistinct}/${progress.total}", color = LabInkMuted)
+                        Spacer(Modifier.height(8.dp))
                         ThinProgress(progress.ownedDistinct, progress.total)
                     }
                 }

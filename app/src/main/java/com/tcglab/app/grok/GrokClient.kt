@@ -1,6 +1,7 @@
 package com.tcglab.app.grok
 
 import com.tcglab.app.data.ApiKeyStore
+import com.tcglab.app.data.AppLogger
 import com.tcglab.app.data.LabRepository
 import com.tcglab.app.folio.Catalog
 import com.tcglab.app.folio.CollectionChange
@@ -61,6 +62,7 @@ class GrokClient(
             )
         }
         try {
+            AppLogger.info(repository.appContextForLogging, "Solicitud IA: proveedor=" + provider.label)
             val holdings = repository.snapshotHoldings()
             val decks = repository.snapshotDecks()
             val summary = collectionSummary(holdings, decks)
@@ -215,6 +217,7 @@ class GrokClient(
             repository.applyAiMutations(changes, savedDecks, deletedDeckIds)
             Result.success(GrokReply(finalText, changes, savedDeck, deleted))
         } catch (e: Exception) {
+            AppLogger.error(repository.appContextForLogging, "Error IA: proveedor=" + provider.label, e)
             Result.failure(e)
         }
     }

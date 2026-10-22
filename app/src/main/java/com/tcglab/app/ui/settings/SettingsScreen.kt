@@ -32,7 +32,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import com.tcglab.app.data.ApiKeyStore
+import com.tcglab.app.data.AppLogger
 import com.tcglab.app.data.ThemeMode
 import com.tcglab.app.data.ThemePreferences
 import com.tcglab.app.ui.components.LabPrimaryButton
@@ -49,6 +51,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val colors = LabTheme.colors
+    val context = LocalContext.current
     val themeMode by themePreferences.mode.collectAsState()
     var apiDraft by remember { mutableStateOf("") }
     var keySaved by remember { mutableStateOf(apiKeyStore.hasKey()) }
@@ -136,6 +139,37 @@ fun SettingsScreen(
                             onApiKeyChanged()
                         }
                     }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(22.dp))
+        Text(text = "Diagnóstico", color = colors.ink, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(8.dp))
+        LabSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                Text(
+                    text = "Guarda errores y eventos técnicos de la aplicación para poder revisarlos.",
+                    color = colors.inkMuted,
+                )
+                Spacer(Modifier.height(10.dp))
+                LabPrimaryButton(text = "Exportar registro") {
+                    val file = AppLogger.export(context)
+                    val uri = FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.files",
+                        file,
+                    )
+                    context.startActivity(
+                        Intent.createChooser(
+                            Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            },
+                            "Compartir registro de TCG LAB",
+                        ),
+                    )
                 }
             }
         }

@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import com.tcglab.app.data.ApiKeyStore
+import com.tcglab.app.data.AppLogger
 import com.tcglab.app.data.LabRepository
 import com.tcglab.app.data.ThemePreferences
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +29,12 @@ class TcgLabApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            AppLogger.error(this, "Excepción no controlada en " + thread.name, throwable)
+            previousHandler?.uncaughtException(thread, throwable)
+        }
+        AppLogger.info(this, "Aplicación iniciada")
         apiKeyStore = ApiKeyStore(this)
         themePreferences = ThemePreferences(this)
         repository = LabRepository(this)
