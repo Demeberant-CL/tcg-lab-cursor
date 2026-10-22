@@ -37,7 +37,7 @@ class LabRepository(context: Context) {
     }
 
     val decks: Flow<List<Deck>> = db.decks().observeAll().map { list ->
-        list.map { it.toDeck() }
+        list.map { it.toDeck().canonicalized() }
     }
 
     val chatMessages: Flow<List<ChatUiMessage>> = db.chat().observeAll().map { list ->
@@ -145,7 +145,7 @@ class LabRepository(context: Context) {
         db.decks().deleteByName(name)
     }
 
-    suspend fun getDeck(id: String): Deck? = db.decks().getById(id)?.toDeck()
+    suspend fun getDeck(id: String): Deck? = db.decks().getById(id)?.toDeck()?.canonicalized()
 
     suspend fun applyAiMutations(
         changes: List<CollectionChange>,
@@ -166,7 +166,7 @@ class LabRepository(context: Context) {
                     },
                 )
             }
-            savedDecks.forEach { db.decks().upsert(it.toEntity()) }
+            savedDecks.forEach { db.decks().upsert(it.canonicalized().toEntity()) }
             deletedDeckIds.distinct().forEach { db.decks().delete(it) }
         }
     }
