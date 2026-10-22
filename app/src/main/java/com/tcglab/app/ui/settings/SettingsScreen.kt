@@ -33,6 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import androidx.core.content.FileProvider
 import com.tcglab.app.data.ApiKeyStore
 import com.tcglab.app.data.AppLogger
 import com.tcglab.app.data.ThemeMode
