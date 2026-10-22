@@ -13,6 +13,11 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      TCG_LAB_KEYSTORE_BASE64: ${{ secrets.TCG_LAB_KEYSTORE_BASE64 }}
+      TCG_LAB_KEYSTORE_PASSWORD: ${{ secrets.TCG_LAB_KEYSTORE_PASSWORD }}
+      TCG_LAB_KEY_ALIAS: ${{ secrets.TCG_LAB_KEY_ALIAS }}
+      TCG_LAB_KEY_PASSWORD: ${{ secrets.TCG_LAB_KEY_PASSWORD }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v5
@@ -38,20 +43,22 @@ jobs:
       - name: Run unit tests and assemble debug APK
         run: ./gradlew --no-daemon test assembleDebug
 
-      - name: Prepare release signing
-        if: github.event_name != 'pull_request' && env.TCG_LAB_KEYSTORE_BASE64 != ''
-        env:
-          TCG_LAB_KEYSTORE_BASE64: ${{ secrets.TCG_LAB_KEYSTORE_BASE64 }}
+      - name: Check release signing configuration
+        id: signing_check
+        if: github.event_name != 'pull_request'
         run: |
-          echo "$TCG_LAB_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/tcg-lab-release.jks"
+          if [ -n "$TCG_LAB_KEYSTORE_BASE64" ] && [ -n "$TCG_LAB_KEYSTORE_PASSWORD" ] && [ -n "$TCG_LAB_KEY_ALIAS" ] && [ -n "$TCG_LAB_KEY_PASSWORD" ]; then
+            echo "has_signing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_signing=false" >> "$GITHUB_OUTPUT"
+          fi
 
+      - name: Prepare release signing
+        if: steps.signing_check.outputs.has_signing == 'true'
+        run: |
       - name: Assemble signed release APK
-        if: github.event_name != 'pull_request' && env.TCG_LAB_KEYSTORE_BASE64 != ''
+        if: steps.signing_check.outputs.has_signing == 'true'
         env:
-          TCG_LAB_KEYSTORE_BASE64: ${{ secrets.TCG_LAB_KEYSTORE_BASE64 }}
-          TCG_LAB_KEYSTORE_PASSWORD: ${{ secrets.TCG_LAB_KEYSTORE_PASSWORD }}
-          TCG_LAB_KEY_ALIAS: ${{ secrets.TCG_LAB_KEY_ALIAS }}
-          TCG_LAB_KEY_PASSWORD: ${{ secrets.TCG_LAB_KEY_PASSWORD }}
           TCG_LAB_KEYSTORE_PATH: $RUNNER_TEMP/tcg-lab-release.jks
         run: ./gradlew --no-daemon assembleRelease
 
@@ -65,7 +72,7 @@ jobs:
           retention-days: 30
 
       - name: Upload signed release APK
-        if: github.event_name != 'pull_request' && env.TCG_LAB_KEYSTORE_BASE64 != ''
+        if: steps.signing_check.outputs.has_signing == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: TCG-LAB-v1.0.2-release-${{ github.sha }}
