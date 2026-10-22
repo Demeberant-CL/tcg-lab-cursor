@@ -75,6 +75,7 @@ class GrokClient(
                             Eres el asistente de TCG LAB. Responde en español neutro, breve y claro.
                             Ayudas a armar mazos listos para el código QR con las cartas que el usuario tiene.
                             No inventes set ni número: usa list_owned antes de save_deck.
+                            Cuando un filtro opcional no sea necesario, omite el campo; no envíes null.
                             Mazos jugables: exactamente 20 cartas, máximo 2 copias por nombre/entityId, 1 a 3 energías (1-8).
                             Resumen de colección del usuario:
                             $summary
@@ -107,13 +108,6 @@ class GrokClient(
             var round = 0
             while (round < 6) {
                 round += 1
-                val providerModels = when (provider) {
-                    AiProvider.GROK -> listOf("grok-4.7", "grok-4.5", "grok-4", "grok-3-mini")
-                    AiProvider.OPENAI -> listOf("gpt-6.1-sol", "gpt-6-luna")
-                    AiProvider.GEMINI -> listOf("gemini-3.8-flash", "gemini-3.6-flash")
-                    AiProvider.GROQ -> listOf("openai/gpt-oss-120b", "openai/gpt-oss-20b")
-                }
-                var model = providerModels.first()
                 val body = JSONObject()
                     .put("model", model)
                     .put("max_tokens", 1600)
@@ -246,6 +240,7 @@ class GrokClient(
 
     private fun toolDefinitions(): JSONArray {
         val stringType = JSONObject().put("type", "string")
+        val optionalStringType = JSONObject().put("type", JSONArray().put("string").put("null"))
         val intType = JSONObject().put("type", "integer")
         val boolType = JSONObject().put("type", "boolean")
         val cardRef = JSONObject()
@@ -280,7 +275,7 @@ class GrokClient(
                             "properties",
                             JSONObject()
                                 .put("query", stringType)
-                                .put("set", stringType)
+                                .put("set", optionalStringType)
                                 .put("limit", intType),
                         )
                         .put("required", JSONArray().put("query")),
@@ -295,9 +290,9 @@ class GrokClient(
                         .put(
                             "properties",
                             JSONObject()
-                                .put("element", stringType)
-                                .put("set", stringType)
-                                .put("text", stringType)
+                                .put("element", optionalStringType)
+                                .put("set", optionalStringType)
+                                .put("text", optionalStringType)
                                 .put("ex_only", boolType),
                         ),
                 ),
