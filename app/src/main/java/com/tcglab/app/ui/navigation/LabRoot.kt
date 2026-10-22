@@ -127,6 +127,7 @@ fun LabRoot(
                 DecksScreen(
                     viewModel = decksVm,
                     onNewDeck = { navController.navigate(Routes.Strategy) },
+                    onOpenDeck = { navController.navigate(Routes.Deck) },
                 )
             }
             composable(Routes.Strategy) {
