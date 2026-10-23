@@ -64,4 +64,30 @@ class RulesTest {
 
         assertEquals(3, qtyOf(holdings, "A1", 1))
     }
+
+    @Test
+    fun canonicalized_merges_duplicate_rows_for_same_card() {
+        val deck = Deck(
+            id = "deck-1",
+            name = "Prueba",
+            energies = listOf(1),
+            cards = listOf(
+                DeckCard(" A1 ", 1, 1),
+                DeckCard("A1", 1, 1),
+                DeckCard("A2", 2, 1),
+            ),
+            updatedAt = 1L,
+        )
+
+        val canonical = deck.canonicalized()
+
+        assertEquals(
+            listOf(
+                DeckCard("A1", 1, 2),
+                DeckCard("A2", 2, 1),
+            ),
+            canonical.cards,
+        )
+    }
+
 }
