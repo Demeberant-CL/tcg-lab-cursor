@@ -88,7 +88,7 @@ fun DeckDetailScreen(
                 )
             }
 
-            state.deck != null -> DeckDetailContent(state.deck)
+            state.deck != null -> {\n                val deck = state.deck\n                DeckDetailContent(deck)\n            }
         }
     }
 }
