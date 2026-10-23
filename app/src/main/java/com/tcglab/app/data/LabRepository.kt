@@ -245,10 +245,16 @@ private fun HoldingEntity.canonicalized(): HoldingEntity {
     )
 }
 
-private fun Deck.canonicalized(): Deck =
-    copy(cards = cards.map {
-        it.copy(set = Catalog.canonSet(it.set))
-    })
+internal fun Deck.canonicalized(): Deck =
+    copy(
+        cards = cards
+            .map { it.copy(set = Catalog.canonSet(it.set)) }
+            .groupBy { it.set to it.number }
+            .map { (_, rows) ->
+                val first = rows.first()
+                first.copy(count = rows.sumOf { it.count })
+            },
+    )
 
 private fun Deck.toEntity() = DeckEntity(
     id = id,
