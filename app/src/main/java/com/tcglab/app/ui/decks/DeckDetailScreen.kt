@@ -90,7 +90,7 @@ fun DeckDetailScreen(
 
             state.deck != null -> {
                 val deck = state.deck
-                DeckDetailContent(deck)
+                DeckDetailContent(state.deck!!)
             }
         }
     }
