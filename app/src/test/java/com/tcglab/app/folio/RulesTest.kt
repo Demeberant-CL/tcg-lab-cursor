@@ -1,5 +1,6 @@
 package com.tcglab.app.folio
 
+import com.tcglab.app.data.canonicalized
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -89,5 +90,4 @@ class RulesTest {
             canonical.cards,
         )
     }
-
 }
