@@ -71,7 +71,9 @@ fun DecksScreen(
                 contentPadding = PaddingValues(bottom = 24.dp),
             ) {
                 items(state.decks, key = { it.id }) { deck ->
-                    LabSurfaceCard(\n                        modifier = Modifier.clickable { onOpenDeck(deck.id) },\n                    ) {
+                    LabSurfaceCard(
+                        modifier = Modifier.clickable { onOpenDeck(deck.id) },
+                    ) {
                         Column(Modifier.padding(16.dp)) {
                             Text(deck.name, color = LabInk)
                             Spacer(Modifier.height(4.dp))
