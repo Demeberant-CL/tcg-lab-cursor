@@ -147,7 +147,7 @@ fun LabRoot(
                 StrategyScreen(
                     grokVm = grokVm,
                     onBack = { navController.popBackStack() },
-                    onOpenDeck = { navController.navigate(Routes.Deck) },
+                    onOpenDeck = { id -> navController.navigate("deck/$id") },
                 )
             }
             composable(Routes.Settings) {
