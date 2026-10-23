@@ -104,7 +104,7 @@ fun LabRoot(
                 HomeScreen(
                     collectionVm = collectionVm,
                     onOpenCollection = { navController.navigate(Routes.Collection) },
-                    onOpenDeck = { id -> navController.navigate("deck/$id") },
+                    onOpenDeck = { navController.navigate(Routes.Deck) },
                     onOpenStrategy = { navController.navigate(Routes.Strategy) },
                     onOpenSettings = { navController.navigate(Routes.Settings) },
                 )
