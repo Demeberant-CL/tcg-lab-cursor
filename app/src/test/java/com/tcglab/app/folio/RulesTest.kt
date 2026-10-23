@@ -1,6 +1,6 @@
 package com.tcglab.app.folio
 
-import com.tcglab.app.data.LabRepository
+import com.tcglab.app.data.canonicalized
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -61,14 +61,14 @@ class RulesTest {
             ),
             updatedAt = 1L,
         )
-        val canonical = LabRepository::class
-            .let { deck.copy(cards = deck.cards.groupBy { it.set to it.number }.values.map { rows ->
-                val first = rows.first()
-                first.copy(count = rows.sumOf { it.count })
-            }) }
+
+        val canonical = deck.canonicalized()
 
         assertEquals(
-            listOf(DeckCard("A1", 1, 2), DeckCard("A2", 2, 1)),
+            listOf(
+                DeckCard("A1", 1, 2),
+                DeckCard("A2", 2, 1),
+            ),
             canonical.cards,
         )
     }
