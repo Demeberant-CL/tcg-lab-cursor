@@ -29,6 +29,7 @@ import com.tcglab.app.ui.collection.CollectionViewModel
 import com.tcglab.app.ui.collection.SetDetailScreen
 import com.tcglab.app.ui.decks.DecksScreen
 import com.tcglab.app.ui.decks.DecksViewModel
+import com.tcglab.app.ui.decks.DeckDetailScreen
 import com.tcglab.app.ui.grok.GrokViewModel
 import com.tcglab.app.ui.home.HomeScreen
 import com.tcglab.app.ui.settings.SettingsScreen
@@ -41,6 +42,7 @@ private object Routes {
     const val Collection = "collection"
     const val Set = "set/{code}"
     const val Deck = "deck"
+    const val DeckDetail = "deck/{id}"
     const val Strategy = "strategy"
     const val Settings = "settings"
 }
@@ -128,7 +130,17 @@ fun LabRoot(
                 DecksScreen(
                     viewModel = decksVm,
                     onNewDeck = { navController.navigate(Routes.Strategy) },
-                    onOpenDeck = { navController.navigate(Routes.Deck) },
+                    onOpenDeck = { id -> navController.navigate("deck/$id") },
+                )
+            }
+            composable(
+                route = Routes.DeckDetail,
+                arguments = listOf(navArgument("id") { type = NavType.StringType }),
+            ) { entry ->
+                DeckDetailScreen(
+                    repository = repository,
+                    deckId = entry.arguments?.getString("id").orEmpty(),
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.Strategy) {
