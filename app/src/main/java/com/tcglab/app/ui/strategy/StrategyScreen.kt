@@ -51,9 +51,10 @@ fun StrategyScreen(
     var draft by remember { mutableStateOf("") }
     var apiDraft by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+    val visibleMessages = messages.takeLast(20)
 
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
+    LaunchedEffect(visibleMessages.size, visibleMessages.lastOrNull()?.id) {
+        if (visibleMessages.isNotEmpty()) listState.animateScrollToItem(visibleMessages.lastIndex)
     }
 
     LaunchedEffect(Unit) { grokVm.refreshKeyState() }
@@ -127,7 +128,7 @@ fun StrategyScreen(
             Spacer(Modifier.height(8.dp))
         }
 
-        if (messages.isEmpty()) {
+        if (visibleMessages.isEmpty()) {
             Spacer(Modifier.weight(1f))
         } else {
             LazyColumn(
@@ -136,7 +137,7 @@ fun StrategyScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(vertical = 8.dp),
             ) {
-                items(messages.takeLast(20), key = { it.id }) { message ->
+                items(visibleMessages, key = { it.id }) { message ->
                     LabSurfaceCard(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(14.dp)) {
                             Text(
