@@ -72,7 +72,7 @@ class RulesTest {
             name = "Prueba",
             energies = listOf(1),
             cards = listOf(
-                DeckCard(" A1 ", 1, 1),
+                DeckCard("A1", 1, 1),
                 DeckCard("A1", 1, 1),
                 DeckCard("A2", 2, 1),
             ),
