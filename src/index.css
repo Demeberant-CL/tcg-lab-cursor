@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-bg: #F3F0E8;
+    --color-surface: #F9F7F1;
+    --color-surface-raised: #FFFFFE;
+    --color-ink: #172536;
+    --color-ink-muted: #667586;
+    --color-outline: #E3DED2;
+    --color-gold: #FFC857;
+    --color-navy: #172536;
+    --color-progress-track: #E9E2D4;
+    --color-progress-fill: #D99A27;
+    --color-empty-slot: #E5DFD3;
+  }
+
+  .dark {
+    --color-bg: #101820;
+    --color-surface: #18232E;
+    --color-surface-raised: #202D38;
+    --color-ink: #F0EEE7;
+    --color-ink-muted: #9DAAB5;
+    --color-outline: #34424E;
+    --color-gold: #FFC857;
+    --color-navy: #172536;
+    --color-progress-track: #33414B;
+    --color-progress-fill: #FFC857;
+    --color-empty-slot: #202D38;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Numbers in tabular format for alignment */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Custom scrollbar for clean card grids */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(102, 117, 134, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 117, 134, 0.4);
+}

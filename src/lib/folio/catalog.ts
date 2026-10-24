@@ -57,6 +57,18 @@ export function cardImageUrl(set: string, number: number): string {
   return `https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/${code}/${code}_${num}_EN.webp`;
 }
 
+export function cardImageFallbacks(set: string, number: number): string[] {
+  const code = IMAGE_SET[set] ?? set;
+  const num = String(number).padStart(3, "0");
+  const bare = String(number);
+  return [
+    cardImageUrl(set, number),
+    `https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/${code}/${code}_${num}_EN_SM.webp`,
+    `https://cdn.jsdelivr.net/gh/flibustier/pokemon-tcg-pocket-database@main/dist/cards-by-set/${set}/${bare}.webp`,
+    `https://cdn.jsdelivr.net/npm/pokemon-tcg-pocket-database/dist/cards-by-set/${set}/${bare}.webp`,
+  ];
+}
+
 export function setInfo(code: string) {
   return SETS.find((set) => set.code === code) ?? null;
 }

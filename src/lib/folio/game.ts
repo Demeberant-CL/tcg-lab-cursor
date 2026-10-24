@@ -101,3 +101,18 @@ export function rarityMark(code: string): string {
 export function padNumber(number: number): string {
   return String(number).padStart(3, "0");
 }
+
+export function isExCard(name: string, rarity: string): boolean {
+  return rarity === "RR" || name.toLowerCase().endsWith(" ex") || name.toLowerCase().endsWith("ex");
+}
+
+export const ELEMENT_COLORS: Record<string, string> = {
+  grass: "#4CAF50",
+  fire: "#E53935",
+  water: "#1E88E5",
+  lightning: "#F9A825",
+  psychic: "#8E24AA",
+  fighting: "#D84315",
+  darkness: "#455A64",
+  metal: "#78909C",
+};

@@ -1,0 +1,8 @@
+{
+  "name": "TCG LAB",
+  "description": "Álbum personal de cartas, mazos de 20 cartas y códigos QR para Pokémon TCG Pocket.",
+  "prompt": "Construye TCG LAB, un álbum personal de cartas, mazos de 20 y código QR para Pokémon TCG Pocket.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
